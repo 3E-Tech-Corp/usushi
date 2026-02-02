@@ -1,6 +1,5 @@
-using Twilio;
-using Twilio.Rest.Api.V2010.Account;
-using Twilio.Types;
+using System.Text;
+using System.Text.Json;
 
 namespace ProjectTemplate.Api.Services;
 
@@ -8,42 +7,47 @@ public class SmsService
 {
     private readonly IConfiguration _config;
     private readonly ILogger<SmsService> _logger;
-    private readonly string _accountSid;
-    private readonly string _authToken;
-    private readonly string _fromNumber;
+    private readonly HttpClient _httpClient;
 
-    public SmsService(IConfiguration config, ILogger<SmsService> logger)
+    public SmsService(IConfiguration config, ILogger<SmsService> logger, IHttpClientFactory httpClientFactory)
     {
         _config = config;
         _logger = logger;
-
-        _accountSid = _config["Twilio:AccountSid"] ?? throw new InvalidOperationException("Twilio:AccountSid not configured");
-        _authToken = _config["Twilio:AuthToken"] ?? throw new InvalidOperationException("Twilio:AuthToken not configured");
-        _fromNumber = _config["Twilio:FromNumber"] ?? throw new InvalidOperationException("Twilio:FromNumber not configured");
-
-        TwilioClient.Init(_accountSid, _authToken);
+        _httpClient = httpClientFactory.CreateClient("SmsGateway");
     }
 
     public async Task<bool> SendSmsAsync(string toPhone, string message)
     {
+        var gatewayUrl = _config["Sms:GatewayUrl"] ?? "https://pie.funtimepb.com/v2/sms/send";
+        var fromPhone = _config["Sms:FromNumber"] ?? "9544665557";
+
         try
         {
-            // Ensure E.164 format for US numbers
-            var to = toPhone.StartsWith("+") ? toPhone : $"+1{toPhone}";
-            var from = _fromNumber.StartsWith("+") ? _fromNumber : $"+{_fromNumber}";
+            var payload = new
+            {
+                from = fromPhone,
+                to = toPhone,
+                message = message
+            };
 
-            var result = await MessageResource.CreateAsync(
-                to: new PhoneNumber(to),
-                from: new PhoneNumber(from),
-                body: message
-            );
+            var json = JsonSerializer.Serialize(payload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            _logger.LogInformation("SMS sent to {Phone}, SID: {Sid}, Status: {Status}", toPhone, result.Sid, result.Status);
-            return true;
+            var response = await _httpClient.PostAsync(gatewayUrl, content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("SMS sent to {Phone}", toPhone);
+                return true;
+            }
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+            _logger.LogWarning("SMS send failed to {Phone}: {Status} {Body}", toPhone, response.StatusCode, responseBody);
+            return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Twilio SMS send error to {Phone}", toPhone);
+            _logger.LogError(ex, "SMS send error to {Phone}", toPhone);
             return false;
         }
     }
