@@ -50,9 +50,9 @@ jobs:
               Write-Host $resultText
               
               if ($resultText -match "ACCESS_GRANTED") {
-                  Write-Host "✓ Permissions granted successfully" -ForegroundColor Green
+                  Write-Host "[OK] Permissions granted successfully" -ForegroundColor Green
               } else {
-                  Write-Host "⚠ Check output above for errors" -ForegroundColor Yellow
+                  Write-Host "[WARN] Check output above for errors" -ForegroundColor Yellow
               }
           } finally {
               Remove-Item $sqlFile -ErrorAction SilentlyContinue
@@ -66,7 +66,7 @@ jobs:
           Write-Host "Restarting app pool: $poolName"
           Restart-WebAppPool -Name $poolName
           Start-Sleep -Seconds 3
-          Write-Host "✓ App pool restarted"
+          Write-Host "[OK] App pool restarted"
 
       - name: Health check
         shell: powershell
@@ -74,7 +74,7 @@ jobs:
           Start-Sleep -Seconds 5
           try {
             $resp = Invoke-WebRequest -Uri "http://localhost/api/health" -Headers @{ Host = "usushi.synthia.bot" } -UseBasicParsing -TimeoutSec 10
-            Write-Host "✓ Health check: $($resp.StatusCode)"
+            Write-Host "[OK] Health check: $($resp.StatusCode)"
           } catch {
-            Write-Host "⚠ Health check failed: $_"
+            Write-Host "[WARN] Health check failed: $_"
           }
