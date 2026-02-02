@@ -25,9 +25,10 @@ public class SmsService
         {
             var payload = new
             {
-                from = fromPhone,
-                to = toPhone,
-                message = message
+                From = fromPhone,
+                To = toPhone,
+                Body = message,
+                Media = ""
             };
 
             var json = JsonSerializer.Serialize(payload);
