@@ -3,14 +3,16 @@ import api from '../services/api';
 
 interface User {
   id: number;
-  username: string;
-  email: string;
+  phone: string;
+  displayName: string | null;
   role: string;
+  isActive: boolean;
 }
 
 interface LoginResponse {
   token: string;
-  username: string;
+  phone: string;
+  displayName: string | null;
   role: string;
   expiresAt: string;
 }
@@ -20,7 +22,9 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  isAdmin: boolean;
+  sendOtp: (phone: string) => Promise<void>;
+  verifyOtp: (phone: string, code: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -33,7 +37,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(() => {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
     setToken(null);
     setUser(null);
   }, []);
@@ -49,8 +52,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [token, logout]);
 
-  const login = async (username: string, password: string) => {
-    const response = await api.post<LoginResponse>('/auth/login', { username, password });
+  const sendOtp = async (phone: string) => {
+    await api.post<{ message: string }>('/auth/send-otp', { phone });
+  };
+
+  const verifyOtp = async (phone: string, code: string) => {
+    const response = await api.post<LoginResponse>('/auth/verify-otp', { phone, code });
     localStorage.setItem('token', response.token);
     setToken(response.token);
   };
@@ -62,7 +69,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token,
         isAuthenticated: !!token && !!user,
         isLoading,
-        login,
+        isAdmin: user?.role === 'Admin',
+        sendOtp,
+        verifyOtp,
         logout,
       }}
     >

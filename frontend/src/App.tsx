@@ -3,10 +3,14 @@ import { useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import Pricing from './pages/Pricing';
-import Account from './pages/Account';
-import PaymentSuccess from './pages/PaymentSuccess';
-import PaymentCancel from './pages/PaymentCancel';
+import UploadReceipt from './pages/UploadReceipt';
+import Meals from './pages/Meals';
+import Rewards from './pages/Rewards';
+import Notifications from './pages/Notifications';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsers from './pages/admin/AdminUsers';
+import SmsBroadcast from './pages/admin/SmsBroadcast';
+import AdminRewards from './pages/admin/AdminRewards';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -14,12 +18,31 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-white text-lg">Loading...</div>
+        <div className="text-center">
+          <div className="text-5xl mb-4 animate-bounce">🍣</div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
       </div>
     );
   }
 
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { isAdmin, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) return <Navigate to="/login" />;
+  if (!isAdmin) return <Navigate to="/" />;
+  return <>{children}</>;
 }
 
 export default function App() {
@@ -28,7 +51,10 @@ export default function App() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-white text-lg">Loading...</div>
+        <div className="text-center">
+          <div className="text-5xl mb-4 animate-bounce">🍣</div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -39,11 +65,8 @@ export default function App() {
         path="/login"
         element={isAuthenticated ? <Navigate to="/" /> : <Login />}
       />
-      {/* Public routes */}
-      <Route path="/pricing" element={<Pricing />} />
-      {/* Auth-required routes */}
-      <Route path="/payment/success" element={<PrivateRoute><PaymentSuccess /></PrivateRoute>} />
-      <Route path="/payment/cancel" element={<PrivateRoute><PaymentCancel /></PrivateRoute>} />
+
+      {/* App routes with sidebar layout */}
       <Route
         path="/"
         element={
@@ -52,9 +75,20 @@ export default function App() {
           </PrivateRoute>
         }
       >
+        {/* Customer routes */}
         <Route index element={<Dashboard />} />
-        <Route path="account" element={<Account />} />
+        <Route path="upload" element={<UploadReceipt />} />
+        <Route path="meals" element={<Meals />} />
+        <Route path="rewards" element={<Rewards />} />
+        <Route path="notifications" element={<Notifications />} />
+
+        {/* Admin routes */}
+        <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+        <Route path="admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+        <Route path="admin/rewards" element={<AdminRoute><AdminRewards /></AdminRoute>} />
+        <Route path="admin/sms" element={<AdminRoute><SmsBroadcast /></AdminRoute>} />
       </Route>
+
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );

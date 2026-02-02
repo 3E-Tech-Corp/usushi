@@ -13,7 +13,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "ProjectTemplate API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "USushi API", Version = "v1" });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token.",
@@ -36,8 +36,8 @@ builder.Services.AddSwaggerGen(c =>
 
 // JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured");
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ProjectTemplate";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ProjectTemplate";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "USushi";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "USushi";
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -69,13 +69,18 @@ builder.Services.AddCors(options =>
     });
 });
 
+// HttpClient for external API calls
+builder.Services.AddHttpClient("SmsGateway");
+builder.Services.AddHttpClient("OpenAI");
+
 // Register services
 builder.Services.AddSingleton<AuthService>();
-builder.Services.AddSingleton<StripeService>();
+builder.Services.AddSingleton<SmsService>();
+builder.Services.AddSingleton<ReceiptService>();
 
 var app = builder.Build();
 
-// Auto-migration: ensure Users table exists
+// Auto-migration: create all tables
 using (var scope = app.Services.CreateScope())
 {
     var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
@@ -87,34 +92,98 @@ using (var scope = app.Services.CreateScope())
             using var conn = new SqlConnection(connStr);
             await conn.OpenAsync();
             await conn.ExecuteAsync(@"
+                -- Users table (phone-based auth)
                 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Users')
                 BEGIN
                     CREATE TABLE Users (
                         Id INT IDENTITY(1,1) PRIMARY KEY,
-                        Username NVARCHAR(100) NOT NULL UNIQUE,
-                        Email NVARCHAR(255) NOT NULL,
-                        PasswordHash NVARCHAR(500) NOT NULL,
+                        Phone NVARCHAR(20) NOT NULL,
+                        DisplayName NVARCHAR(100) NULL,
                         Role NVARCHAR(50) NOT NULL DEFAULT 'User',
                         IsActive BIT NOT NULL DEFAULT 1,
                         CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
                         UpdatedAt DATETIME2 NULL
                     );
+                    CREATE UNIQUE INDEX IX_Users_Phone ON Users(Phone);
                 END
 
-                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Subscriptions')
+                -- OTP codes table
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'OtpCodes')
                 BEGIN
-                    CREATE TABLE Subscriptions (
+                    CREATE TABLE OtpCodes (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        Phone NVARCHAR(20) NOT NULL,
+                        Code NVARCHAR(10) NOT NULL,
+                        ExpiresAt DATETIME2 NOT NULL,
+                        Attempts INT NOT NULL DEFAULT 0,
+                        IsUsed BIT NOT NULL DEFAULT 0,
+                        CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+                    );
+                    CREATE INDEX IX_OtpCodes_Phone ON OtpCodes(Phone);
+                END
+
+                -- Meals (receipt records)
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Meals')
+                BEGIN
+                    CREATE TABLE Meals (
                         Id INT IDENTITY(1,1) PRIMARY KEY,
                         UserId INT NOT NULL,
-                        StripeCustomerId NVARCHAR(100) NOT NULL,
-                        StripeSubscriptionId NVARCHAR(100) NULL,
-                        PlanName NVARCHAR(50) NULL,
-                        Status NVARCHAR(20) NOT NULL DEFAULT 'inactive',
-                        CurrentPeriodEnd DATETIME2 NULL,
+                        PhotoPath NVARCHAR(500) NULL,
+                        ExtractedTotal DECIMAL(10,2) NULL,
+                        ExtractedDate NVARCHAR(50) NULL,
+                        ExtractedRestaurant NVARCHAR(200) NULL,
+                        ManualTotal DECIMAL(10,2) NULL,
+                        Status NVARCHAR(20) NOT NULL DEFAULT 'Pending',
                         CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-                        UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+                        CONSTRAINT FK_Meals_Users FOREIGN KEY (UserId) REFERENCES Users(Id)
                     );
-                END");
+                    CREATE INDEX IX_Meals_UserId ON Meals(UserId);
+                END
+
+                -- Rewards
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Rewards')
+                BEGIN
+                    CREATE TABLE Rewards (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        UserId INT NOT NULL,
+                        Type NVARCHAR(50) NOT NULL DEFAULT 'FreeMeal',
+                        Status NVARCHAR(20) NOT NULL DEFAULT 'Earned',
+                        EarnedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                        RedeemedAt DATETIME2 NULL,
+                        PeriodStart DATETIME2 NOT NULL,
+                        PeriodEnd DATETIME2 NOT NULL,
+                        CONSTRAINT FK_Rewards_Users FOREIGN KEY (UserId) REFERENCES Users(Id)
+                    );
+                    CREATE INDEX IX_Rewards_UserId ON Rewards(UserId);
+                END
+
+                -- SMS Broadcasts
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'SmsBroadcasts')
+                BEGIN
+                    CREATE TABLE SmsBroadcasts (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        AdminUserId INT NOT NULL,
+                        Message NVARCHAR(500) NOT NULL,
+                        RecipientCount INT NOT NULL DEFAULT 0,
+                        SentAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                        CONSTRAINT FK_SmsBroadcasts_Users FOREIGN KEY (AdminUserId) REFERENCES Users(Id)
+                    );
+                END
+
+                -- Notifications
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Notifications')
+                BEGIN
+                    CREATE TABLE Notifications (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        UserId INT NOT NULL,
+                        Message NVARCHAR(1000) NOT NULL,
+                        IsRead BIT NOT NULL DEFAULT 0,
+                        CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                        CONSTRAINT FK_Notifications_Users FOREIGN KEY (UserId) REFERENCES Users(Id)
+                    );
+                    CREATE INDEX IX_Notifications_UserId ON Notifications(UserId);
+                END
+            ");
             app.Logger.LogInformation("Database migration completed successfully");
         }
         catch (Exception ex)
@@ -134,6 +203,10 @@ if (app.Environment.IsDevelopment())
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Serve static files (for receipt images)
+app.UseStaticFiles();
+
 app.MapControllers();
 
 app.Run();

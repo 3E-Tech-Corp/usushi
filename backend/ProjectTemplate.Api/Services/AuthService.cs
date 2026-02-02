@@ -1,6 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 
@@ -9,44 +8,17 @@ namespace ProjectTemplate.Api.Services;
 public class AuthService
 {
     private readonly IConfiguration _config;
-    private const int SaltSize = 16;
-    private const int HashSize = 32;
-    private const int Iterations = 100_000;
-    private static readonly HashAlgorithmName Algorithm = HashAlgorithmName.SHA256;
 
     public AuthService(IConfiguration config)
     {
         _config = config;
     }
 
-    public string HashPassword(string password)
-    {
-        var salt = RandomNumberGenerator.GetBytes(SaltSize);
-        var hash = Rfc2898DeriveBytes.Pbkdf2(
-            Encoding.UTF8.GetBytes(password), salt, Iterations, Algorithm, HashSize);
-
-        return $"{Convert.ToBase64String(salt)}.{Convert.ToBase64String(hash)}";
-    }
-
-    public bool VerifyPassword(string password, string passwordHash)
-    {
-        var parts = passwordHash.Split('.');
-        if (parts.Length != 2) return false;
-
-        var salt = Convert.FromBase64String(parts[0]);
-        var hash = Convert.FromBase64String(parts[1]);
-
-        var testHash = Rfc2898DeriveBytes.Pbkdf2(
-            Encoding.UTF8.GetBytes(password), salt, Iterations, Algorithm, HashSize);
-
-        return CryptographicOperations.FixedTimeEquals(hash, testHash);
-    }
-
-    public string GenerateToken(string username, string role, int userId)
+    public string GenerateToken(string phone, string role, int userId)
     {
         var key = _config["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured");
-        var issuer = _config["Jwt:Issuer"] ?? "ProjectTemplate";
-        var audience = _config["Jwt:Audience"] ?? "ProjectTemplate";
+        var issuer = _config["Jwt:Issuer"] ?? "USushi";
+        var audience = _config["Jwt:Audience"] ?? "USushi";
         var expiryHours = int.TryParse(_config["Jwt:ExpiryHours"], out var h) ? h : 24;
 
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
@@ -54,7 +26,7 @@ public class AuthService
 
         var claims = new[]
         {
-            new Claim(ClaimTypes.Name, username),
+            new Claim(ClaimTypes.Name, phone),
             new Claim(ClaimTypes.Role, role),
             new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
