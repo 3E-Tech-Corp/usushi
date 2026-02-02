@@ -70,7 +70,6 @@ builder.Services.AddCors(options =>
 });
 
 // HttpClient for external API calls
-builder.Services.AddHttpClient("SmsGateway");
 builder.Services.AddHttpClient("OpenAI");
 
 // Register services

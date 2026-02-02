@@ -24,7 +24,7 @@ Built with .NET 8 Web API backend + React/Vite/TypeScript frontend, deployed to 
 - Controller routes use `[Route("[controller]")]` (IIS virtual app mounts at /api)
 - Frontend uses typed fetch wrapper (`src/services/api.ts`) with file upload support
 - AuthContext manages JWT tokens in localStorage, OTP flow
-- SMS via FXNotification gateway (pie.funtimepb.com)
+- SMS via Twilio REST API
 
 ## Deployment
 - Physical paths: `F:\New_WWW\usushi\WWW` (frontend) + `F:\New_WWW\usushi\API` (backend)
@@ -36,7 +36,9 @@ Built with .NET 8 Web API backend + React/Vite/TypeScript frontend, deployed to 
 - `__JWT_KEY__` — JWT signing key (min 32 characters)
 - `__CORS_ORIGINS__` — Comma-separated allowed CORS origins
 - `__OPENAI_API_KEY__` — OpenAI API key for receipt OCR
-- `__SMS_GATEWAY_URL__` — SMS gateway URL (default: https://pie.funtimepb.com/v2/sms/send)
+- `__TWILIO_ACCOUNT_SID__` — Twilio Account SID
+- `__TWILIO_AUTH_TOKEN__` — Twilio Auth Token
+- `__TWILIO_FROM_NUMBER__` — Twilio sender phone number
 
 ## Build Commands
 ```bash
