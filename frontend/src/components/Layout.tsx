@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -18,6 +19,7 @@ const adminNav = [
 
 export default function Layout() {
   const { user, logout, isAdmin } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const formatPhone = (phone: string) => {
     if (phone.length === 10) {
@@ -26,11 +28,28 @@ export default function Layout() {
     return phone;
   };
 
+  const closeSidebar = () => setSidebarOpen(false);
+
   return (
     <div className="min-h-screen bg-gray-900 flex">
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-30 lg:hidden"
+          onClick={closeSidebar}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col flex-shrink-0">
-        <div className="p-6 border-b border-gray-700">
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-40 w-64 bg-gray-800 border-r border-gray-700 flex flex-col flex-shrink-0
+          transform transition-transform duration-200 ease-in-out
+          lg:static lg:translate-x-0
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        <div className="p-6 border-b border-gray-700 flex items-center justify-between">
           <div className="flex items-center">
             <span className="text-3xl mr-2">🍣</span>
             <div>
@@ -38,6 +57,15 @@ export default function Layout() {
               <p className="text-xs text-gray-400">Loyalty Rewards</p>
             </div>
           </div>
+          {/* Close button on mobile */}
+          <button
+            onClick={closeSidebar}
+            className="lg:hidden text-gray-400 hover:text-white p-1"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -48,6 +76,7 @@ export default function Layout() {
               key={item.path}
               to={item.path}
               end={item.path === '/'}
+              onClick={closeSidebar}
               className={({ isActive: active }) =>
                 `block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   active
@@ -71,6 +100,7 @@ export default function Layout() {
                   key={item.path}
                   to={item.path}
                   end={item.path === '/admin'}
+                  onClick={closeSidebar}
                   className={({ isActive: active }) =>
                     `block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       active
@@ -107,9 +137,28 @@ export default function Layout() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 p-8 overflow-auto">
-        <Outlet />
-      </main>
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Mobile header with hamburger */}
+        <header className="lg:hidden bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center justify-between sticky top-0 z-20">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="text-gray-300 hover:text-white p-1"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <div className="flex items-center">
+            <span className="text-xl mr-1">🍣</span>
+            <span className="text-lg font-bold text-white">USushi</span>
+          </div>
+          <div className="w-8" /> {/* Spacer for centering */}
+        </header>
+
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }
