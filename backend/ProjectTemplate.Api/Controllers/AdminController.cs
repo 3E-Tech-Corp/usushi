@@ -186,7 +186,7 @@ public class AdminController : ControllerBase
     /// <summary>
     /// Scan an image of handwritten phone numbers using OpenAI Vision
     /// </summary>
-    [HttpPost("phone-scan")]
+    [HttpPost("/tools/phone-scan")]
     public async Task<IActionResult> ScanPhones(IFormFile file)
     {
         try
