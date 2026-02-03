@@ -244,7 +244,8 @@ public class AdminController : ControllerBase
 Instructions:
 - Each line typically has a phone number and optionally a person's name
 - Phone numbers are 10 digits, often written as XXX-XXX-XXXX or (XXX) XXX-XXXX or just 10 digits
-- Read each digit carefully — handwritten 1/7, 4/9, 3/8, 5/6 can look similar. Use context (area codes like 305, 786, 954, 917, 310 are common)
+- These are South Florida customers. Expected area codes: 954, 305, 786, 561, 754, 321, 407, 863. When a digit is ambiguous, prefer these area codes
+- Read each digit carefully — handwritten 1/7, 4/9, 3/8, 5/6 can look similar
 - If a checkmark ✓ or similar mark appears next to a number, ignore it — just read the number and name
 - Extract the name written next to each number if visible
 
