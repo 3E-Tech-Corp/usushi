@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, User, Search } from 'lucide-react';
+import { Shield, User, Search, Download } from 'lucide-react';
 import api from '../../services/api';
 
 interface UserWithStats {
@@ -65,15 +65,57 @@ export default function AdminUsers() {
     return u.phone.includes(q) || (u.displayName?.toLowerCase().includes(q) ?? false);
   });
 
+  const exportToExcel = () => {
+    const data = filteredUsers.map(u => ({
+      Name: u.displayName || '',
+      Phone: formatPhone(u.phone),
+      Role: u.role,
+      Active: u.isActive ? 'Yes' : 'No',
+      'Meal Count': u.mealCount,
+      'Last Meal': u.lastMealAt ? formatDate(u.lastMealAt) : '',
+      Joined: formatDate(u.createdAt),
+    }));
+
+    // Build CSV
+    const headers = Object.keys(data[0] || {});
+    const csvRows = [
+      headers.join(','),
+      ...data.map(row =>
+        headers.map(h => {
+          const val = String((row as Record<string, unknown>)[h] ?? '');
+          return val.includes(',') || val.includes('"') ? `"${val.replace(/"/g, '""')}"` : val;
+        }).join(',')
+      ),
+    ];
+    const csv = csvRows.join('\n');
+
+    // Download as CSV (opens fine in Excel)
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `usushi-users-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return <div className="text-center py-12 text-gray-400">Loading users...</div>;
   }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <h1 className="text-2xl font-bold text-white">Users</h1>
-        <div className="relative">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={exportToExcel}
+            className="flex items-center gap-2 px-4 py-2 bg-green-700 hover:bg-green-600 text-white text-sm rounded-lg transition"
+          >
+            <Download size={16} />
+            Export Excel
+          </button>
+          <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
           <input
             type="text"
@@ -82,6 +124,7 @@ export default function AdminUsers() {
             placeholder="Search phone or name..."
             className="pl-9 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sushi-500"
           />
+          </div>
         </div>
       </div>
 
