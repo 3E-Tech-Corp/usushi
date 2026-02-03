@@ -121,7 +121,7 @@ public class MealsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Upload receipt failed");
-            return StatusCode(500, new { message = "Upload failed: " + ex.Message, stack = ex.StackTrace, inner = ex.InnerException?.Message });
+            return StatusCode(500, new { message = "Upload failed: " + ex.Message });
         }
     }
 
