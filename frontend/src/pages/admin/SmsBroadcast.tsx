@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Send, MessageSquare, Clock, AlertCircle } from 'lucide-react';
 import api from '../../services/api';
 
@@ -11,6 +12,7 @@ interface SmsBroadcastDto {
 }
 
 export default function SmsBroadcast() {
+  const { t } = useTranslation();
   const [message, setMessage] = useState('');
   const [activeOnly, setActiveOnly] = useState(false);
   const [sending, setSending] = useState(false);
@@ -28,7 +30,8 @@ export default function SmsBroadcast() {
 
   const handleSend = async () => {
     if (!message.trim()) return;
-    if (!confirm(`Send this SMS to ${activeOnly ? 'active' : 'all'} users?`)) return;
+    const target = activeOnly ? t('smsBroadcast.targetActive') : t('smsBroadcast.targetAll');
+    if (!confirm(t('smsBroadcast.confirmSend', { target }))) return;
 
     setSending(true);
     setError('');
@@ -46,7 +49,7 @@ export default function SmsBroadcast() {
       const updated = await api.get<SmsBroadcastDto[]>('/admin/sms-broadcasts');
       setHistory(updated);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send broadcast');
+      setError(err instanceof Error ? err.message : t('smsBroadcast.sendFailed'));
     } finally {
       setSending(false);
     }
@@ -63,13 +66,13 @@ export default function SmsBroadcast() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-6">SMS Broadcast 📱</h1>
+      <h1 className="text-2xl font-bold text-white mb-6">{t('smsBroadcast.title')}</h1>
 
       {/* Compose */}
       <div className="bg-gray-800 rounded-xl border border-gray-700 p-6 mb-8">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center">
           <MessageSquare size={20} className="mr-2 text-sushi-400" />
-          Compose Message
+          {t('smsBroadcast.composeMessage')}
         </h2>
 
         {error && (
@@ -88,7 +91,7 @@ export default function SmsBroadcast() {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sushi-500 focus:border-transparent resize-none"
-            placeholder="Type your message here..."
+            placeholder={t('smsBroadcast.messagePlaceholder')}
             rows={4}
             maxLength={200}
           />
@@ -98,7 +101,7 @@ export default function SmsBroadcast() {
                 <AlertCircle size={14} className="text-red-400 mr-1" />
               )}
               <span className={`text-sm ${isOverLimit ? 'text-red-400' : charCount > 140 ? 'text-yellow-400' : 'text-gray-500'}`}>
-                {charCount}/160 characters
+                {t('smsBroadcast.charCount', { count: charCount })}
               </span>
             </div>
           </div>
@@ -112,7 +115,7 @@ export default function SmsBroadcast() {
               onChange={(e) => setActiveOnly(e.target.checked)}
               className="mr-2"
             />
-            Active users only (had a meal in last 3 months)
+            {t('smsBroadcast.activeUsersOnly')}
           </label>
 
           <button
@@ -123,12 +126,12 @@ export default function SmsBroadcast() {
             {sending ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                Sending...
+                {t('smsBroadcast.sending')}
               </>
             ) : (
               <>
                 <Send size={16} className="mr-2" />
-                Send Broadcast
+                {t('smsBroadcast.sendBroadcast')}
               </>
             )}
           </button>
@@ -137,7 +140,7 @@ export default function SmsBroadcast() {
         {/* Preview */}
         {message && (
           <div className="mt-4 p-4 bg-gray-900 rounded-lg border border-gray-600">
-            <p className="text-gray-500 text-xs mb-2">📱 SMS Preview</p>
+            <p className="text-gray-500 text-xs mb-2">{t('smsBroadcast.smsPreview')}</p>
             <p className="text-white text-sm">{message}</p>
           </div>
         )}
@@ -148,21 +151,21 @@ export default function SmsBroadcast() {
         <div className="p-5 border-b border-gray-700">
           <h3 className="text-white font-semibold flex items-center">
             <Clock size={18} className="mr-2 text-gray-400" />
-            Broadcast History
+            {t('smsBroadcast.broadcastHistory')}
           </h3>
         </div>
 
         {loadingHistory ? (
-          <div className="p-8 text-center text-gray-400">Loading...</div>
+          <div className="p-8 text-center text-gray-400">{t('common.loading')}</div>
         ) : history.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">No broadcasts sent yet</div>
+          <div className="p-8 text-center text-gray-400">{t('smsBroadcast.noBroadcasts')}</div>
         ) : (
           <div className="divide-y divide-gray-700">
             {history.map(broadcast => (
               <div key={broadcast.id} className="px-5 py-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-400 text-sm">{formatDate(broadcast.sentAt)}</span>
-                  <span className="text-sushi-400 text-sm">{broadcast.recipientCount} recipients</span>
+                  <span className="text-sushi-400 text-sm">{t('smsBroadcast.recipients', { count: broadcast.recipientCount })}</span>
                 </div>
                 <p className="text-white text-sm">{broadcast.message}</p>
               </div>

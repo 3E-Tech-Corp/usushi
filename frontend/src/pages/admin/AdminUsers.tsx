@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Shield, User, Search, Download } from 'lucide-react';
 import api from '../../services/api';
 
@@ -14,6 +15,7 @@ interface UserWithStats {
 }
 
 export default function AdminUsers() {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<UserWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -100,20 +102,20 @@ export default function AdminUsers() {
   };
 
   if (loading) {
-    return <div className="text-center py-12 text-gray-400">Loading users...</div>;
+    return <div className="text-center py-12 text-gray-400">{t('adminUsers.loadingUsers')}</div>;
   }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <h1 className="text-2xl font-bold text-white">Users</h1>
+        <h1 className="text-2xl font-bold text-white">{t('adminUsers.title')}</h1>
         <div className="flex items-center gap-3">
           <button
             onClick={exportToExcel}
             className="flex items-center gap-2 px-4 py-2 bg-green-700 hover:bg-green-600 text-white text-sm rounded-lg transition"
           >
             <Download size={16} />
-            Export Excel
+            {t('adminUsers.exportExcel')}
           </button>
           <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
@@ -121,7 +123,7 @@ export default function AdminUsers() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search phone or name..."
+            placeholder={t('adminUsers.searchPlaceholder')}
             className="pl-9 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sushi-500"
           />
           </div>
@@ -132,14 +134,14 @@ export default function AdminUsers() {
       {editingUser && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setEditingUser(null)}>
           <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md border border-gray-700" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-white mb-4">Edit User</h2>
+            <h2 className="text-lg font-bold text-white mb-4">{t('adminUsers.editUser')}</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Phone</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('adminUsers.phoneLabel')}</label>
                 <p className="text-white">{formatPhone(editingUser.phone)}</p>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Display Name</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('adminUsers.displayName')}</label>
                 <input
                   value={editingUser.displayName || ''}
                   onChange={e => setEditingUser({ ...editingUser, displayName: e.target.value })}
@@ -147,14 +149,14 @@ export default function AdminUsers() {
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Role</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('adminUsers.roleLabel')}</label>
                 <select
                   value={editingUser.role}
                   onChange={e => setEditingUser({ ...editingUser, role: e.target.value })}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-sushi-500"
                 >
-                  <option value="User">User</option>
-                  <option value="Admin">Admin</option>
+                  <option value="User">{t('common.user')}</option>
+                  <option value="Admin">{t('nav.admin')}</option>
                 </select>
               </div>
               <div className="flex items-center">
@@ -164,7 +166,7 @@ export default function AdminUsers() {
                   onChange={e => setEditingUser({ ...editingUser, isActive: e.target.checked })}
                   className="mr-2"
                 />
-                <label className="text-gray-300">Active</label>
+                <label className="text-gray-300">{t('adminUsers.activeLabel')}</label>
               </div>
             </div>
             <div className="flex space-x-3 mt-6">
@@ -173,13 +175,13 @@ export default function AdminUsers() {
                 disabled={saving}
                 className="flex-1 bg-sushi-600 hover:bg-sushi-700 text-white py-2 rounded-lg transition"
               >
-                {saving ? 'Saving...' : 'Save'}
+                {saving ? t('profile.saving') : t('common.save')}
               </button>
               <button
                 onClick={() => setEditingUser(null)}
                 className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg transition"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </div>
@@ -192,12 +194,12 @@ export default function AdminUsers() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-700">
-                <th className="text-left px-5 py-3 text-gray-400 text-sm font-medium">User</th>
-                <th className="text-left px-5 py-3 text-gray-400 text-sm font-medium">Role</th>
-                <th className="text-left px-5 py-3 text-gray-400 text-sm font-medium">Meals</th>
-                <th className="text-left px-5 py-3 text-gray-400 text-sm font-medium">Last Meal</th>
-                <th className="text-left px-5 py-3 text-gray-400 text-sm font-medium">Joined</th>
-                <th className="text-right px-5 py-3 text-gray-400 text-sm font-medium">Actions</th>
+                <th className="text-left px-5 py-3 text-gray-400 text-sm font-medium">{t('adminUsers.userColumn')}</th>
+                <th className="text-left px-5 py-3 text-gray-400 text-sm font-medium">{t('adminUsers.roleColumn')}</th>
+                <th className="text-left px-5 py-3 text-gray-400 text-sm font-medium">{t('adminUsers.mealsColumn')}</th>
+                <th className="text-left px-5 py-3 text-gray-400 text-sm font-medium">{t('adminUsers.lastMealColumn')}</th>
+                <th className="text-left px-5 py-3 text-gray-400 text-sm font-medium">{t('adminUsers.joinedColumn')}</th>
+                <th className="text-right px-5 py-3 text-gray-400 text-sm font-medium">{t('adminUsers.actionsColumn')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700">
@@ -233,7 +235,7 @@ export default function AdminUsers() {
                       onClick={() => setEditingUser({ ...u })}
                       className="text-sushi-400 hover:text-sushi-300 text-sm"
                     >
-                      Edit
+                      {t('common.edit')}
                     </button>
                   </td>
                 </tr>
@@ -242,7 +244,7 @@ export default function AdminUsers() {
           </table>
         </div>
         {filteredUsers.length === 0 && (
-          <div className="p-8 text-center text-gray-400">No users found</div>
+          <div className="p-8 text-center text-gray-400">{t('adminUsers.noUsersFound')}</div>
         )}
       </div>
     </div>

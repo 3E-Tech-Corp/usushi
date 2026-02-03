@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Camera, Gift, Bell, ChevronRight, TrendingUp, UserCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
@@ -40,6 +41,7 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [data, setData] = useState<DashboardData | null>(null);
@@ -57,7 +59,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
           <div className="text-5xl mb-4 animate-bounce">🍣</div>
-          <p className="text-gray-400">Loading your dashboard...</p>
+          <p className="text-gray-400">{t('dashboard.loadingDashboard')}</p>
         </div>
       </div>
     );
@@ -69,7 +71,7 @@ export default function Dashboard() {
 
   const getMealAmount = (meal: MealDto) => {
     const amount = meal.manualTotal ?? meal.extractedTotal;
-    return amount ? `$${amount.toFixed(2)}` : 'N/A';
+    return amount ? `$${amount.toFixed(2)}` : t('common.na');
   };
 
   const formatDate = (dateStr: string) => {
@@ -78,14 +80,16 @@ export default function Dashboard() {
     });
   };
 
+  const nameSegment = user?.displayName ? t('dashboard.welcomeName', { name: user.displayName }) : '';
+
   return (
     <div>
       {/* Welcome */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white">
-          Welcome back{user?.displayName ? `, ${user.displayName}` : ''} 🍣
+          {t('dashboard.welcome', { name: nameSegment })}
         </h1>
-        <p className="text-gray-400 mt-1">Track your meals and earn rewards</p>
+        <p className="text-gray-400 mt-1">{t('dashboard.subtitle')}</p>
       </div>
 
       {/* Progress Card */}
@@ -94,10 +98,10 @@ export default function Dashboard() {
           <div>
             <h2 className="text-lg font-semibold text-white flex items-center">
               <TrendingUp className="mr-2 text-sushi-400" size={20} />
-              Meal Progress
+              {t('dashboard.mealProgress')}
             </h2>
             <p className="text-sm text-gray-400 mt-1">
-              Rolling 3-month period
+              {t('dashboard.rollingPeriod')}
             </p>
           </div>
           <div className="text-right">
@@ -116,11 +120,11 @@ export default function Dashboard() {
 
         <p className="text-sm text-gray-300">
           {mealsLeft > 0 ? (
-            <>
-              <span className="text-sushi-400 font-medium">{mealsLeft} more meal{mealsLeft !== 1 ? 's' : ''}</span> to earn a free meal! 🎉
-            </>
+            <span className="text-sushi-400 font-medium">
+              {t('dashboard.mealsLeft', { count: mealsLeft })}
+            </span>
           ) : (
-            <span className="text-green-400 font-medium">🎉 You've earned a free meal! Check your rewards.</span>
+            <span className="text-green-400 font-medium">{t('dashboard.earnedFreeMeal')}</span>
           )}
         </p>
       </div>
@@ -134,8 +138,8 @@ export default function Dashboard() {
           <div className="flex items-center">
             <UserCircle className="text-orange-400 mr-3 flex-shrink-0" size={24} />
             <div>
-              <p className="text-white font-medium">Complete your profile</p>
-              <p className="text-orange-300/70 text-sm">Add your name so we know what to call you!</p>
+              <p className="text-white font-medium">{t('dashboard.completeProfile')}</p>
+              <p className="text-orange-300/70 text-sm">{t('dashboard.completeProfileHint')}</p>
             </div>
           </div>
           <ChevronRight className="text-orange-400 flex-shrink-0" size={20} />
@@ -149,8 +153,8 @@ export default function Dashboard() {
           className="bg-sushi-600 hover:bg-sushi-700 rounded-xl p-5 text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
           <Camera className="text-white mb-3" size={28} />
-          <h3 className="text-white font-semibold">Upload Receipt</h3>
-          <p className="text-sushi-200 text-sm mt-1">Snap a photo of your receipt</p>
+          <h3 className="text-white font-semibold">{t('dashboard.uploadReceipt')}</h3>
+          <p className="text-sushi-200 text-sm mt-1">{t('dashboard.uploadReceiptHint')}</p>
         </button>
 
         <button
@@ -158,8 +162,8 @@ export default function Dashboard() {
           className="bg-gray-800 hover:bg-gray-700 rounded-xl p-5 text-left border border-gray-700 transition-all hover:scale-[1.02] active:scale-[0.98] relative"
         >
           <Gift className="text-sushi-400 mb-3" size={28} />
-          <h3 className="text-white font-semibold">My Rewards</h3>
-          <p className="text-gray-400 text-sm mt-1">View earned free meals</p>
+          <h3 className="text-white font-semibold">{t('dashboard.myRewards')}</h3>
+          <p className="text-gray-400 text-sm mt-1">{t('dashboard.myRewardsHint')}</p>
           {(data?.activeRewards.length ?? 0) > 0 && (
             <span className="absolute top-4 right-4 bg-green-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
               {data?.activeRewards.length}
@@ -172,8 +176,8 @@ export default function Dashboard() {
           className="bg-gray-800 hover:bg-gray-700 rounded-xl p-5 text-left border border-gray-700 transition-all hover:scale-[1.02] active:scale-[0.98] relative"
         >
           <Bell className="text-sushi-400 mb-3" size={28} />
-          <h3 className="text-white font-semibold">Notifications</h3>
-          <p className="text-gray-400 text-sm mt-1">Stay updated</p>
+          <h3 className="text-white font-semibold">{t('dashboard.notifications')}</h3>
+          <p className="text-gray-400 text-sm mt-1">{t('dashboard.notificationsHint')}</p>
           {unreadNotifications > 0 && (
             <span className="absolute top-4 right-4 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
               {unreadNotifications}
@@ -187,16 +191,16 @@ export default function Dashboard() {
         <div className="bg-green-900/20 border border-green-700/50 rounded-xl p-5 mb-6">
           <h3 className="text-green-400 font-semibold mb-3 flex items-center">
             <Gift size={18} className="mr-2" />
-            Active Rewards
+            {t('dashboard.activeRewards')}
           </h3>
           {data?.activeRewards.map(reward => (
             <div key={reward.id} className="flex items-center justify-between bg-green-900/30 rounded-lg p-3 mb-2">
               <div>
-                <span className="text-white font-medium">🎉 Free Meal</span>
-                <p className="text-green-300 text-sm">Earned {formatDate(reward.earnedAt)}</p>
+                <span className="text-white font-medium">{t('dashboard.freeMeal')}</span>
+                <p className="text-green-300 text-sm">{t('dashboard.earned', { date: formatDate(reward.earnedAt) })}</p>
               </div>
               <span className="text-green-400 text-sm font-medium px-3 py-1 bg-green-900/50 rounded-full">
-                Show to redeem
+                {t('dashboard.showToRedeem')}
               </span>
             </div>
           ))}
@@ -206,19 +210,19 @@ export default function Dashboard() {
       {/* Recent Meals */}
       <div className="bg-gray-800 rounded-xl border border-gray-700">
         <div className="flex items-center justify-between p-5 border-b border-gray-700">
-          <h3 className="text-white font-semibold">Recent Meals</h3>
+          <h3 className="text-white font-semibold">{t('dashboard.recentMeals')}</h3>
           <button
             onClick={() => navigate('/meals')}
             className="text-sushi-400 hover:text-sushi-300 text-sm flex items-center"
           >
-            View all <ChevronRight size={16} />
+            {t('dashboard.viewAll')} <ChevronRight size={16} />
           </button>
         </div>
 
         {(!data?.recentMeals || data.recentMeals.length === 0) ? (
           <div className="p-8 text-center">
             <div className="text-4xl mb-3">📱</div>
-            <p className="text-gray-400">No meals yet. Upload your first receipt!</p>
+            <p className="text-gray-400">{t('dashboard.noMealsYet')}</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-700">
@@ -226,7 +230,7 @@ export default function Dashboard() {
               <div key={meal.id} className="px-5 py-4 flex items-center justify-between">
                 <div>
                   <p className="text-white font-medium">
-                    {meal.extractedRestaurant || 'Restaurant'}
+                    {meal.extractedRestaurant || t('common.restaurant')}
                   </p>
                   <p className="text-gray-400 text-sm">
                     {meal.extractedDate || formatDate(meal.createdAt)}
@@ -239,7 +243,7 @@ export default function Dashboard() {
                       ? 'bg-green-900/50 text-green-400' 
                       : 'bg-yellow-900/50 text-yellow-400'
                   }`}>
-                    {meal.status}
+                    {meal.status === 'Verified' ? t('meals.statusVerified') : t('meals.statusPending')}
                   </span>
                 </div>
               </div>

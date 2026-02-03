@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { Phone, ArrowRight, Shield } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export default function Login() {
+  const { t } = useTranslation();
   const { sendOtp, verifyOtp } = useAuth();
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
@@ -41,7 +44,7 @@ export default function Login() {
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (phone.length < 10) {
-      setError('Please enter a valid 10-digit phone number');
+      setError(t('login.invalidPhone'));
       return;
     }
     setError('');
@@ -51,7 +54,7 @@ export default function Login() {
       setStep('otp');
       startCountdown();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send code');
+      setError(err instanceof Error ? err.message : t('login.sendFailed'));
     } finally {
       setLoading(false);
     }
@@ -60,7 +63,7 @@ export default function Login() {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (code.length !== 6) {
-      setError('Please enter the 6-digit code');
+      setError(t('login.invalidCode'));
       return;
     }
     setError('');
@@ -68,7 +71,7 @@ export default function Login() {
     try {
       await verifyOtp(phone, code);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid code');
+      setError(err instanceof Error ? err.message : t('login.verifyFailed'));
     } finally {
       setLoading(false);
     }
@@ -82,7 +85,7 @@ export default function Login() {
       await sendOtp(phone);
       startCountdown();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to resend code');
+      setError(err instanceof Error ? err.message : t('login.resendFailed'));
     } finally {
       setLoading(false);
     }
@@ -92,11 +95,16 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-sushi-950 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700">
+          {/* Language switcher */}
+          <div className="flex justify-end mb-4">
+            <LanguageSwitcher className="border-gray-600" />
+          </div>
+
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="text-6xl mb-4">🍣</div>
-            <h1 className="text-3xl font-bold text-white mb-2">USushi</h1>
-            <p className="text-gray-400">Loyalty Rewards Program</p>
+            <h1 className="text-3xl font-bold text-white mb-2">{t('login.title')}</h1>
+            <p className="text-gray-400">{t('login.subtitle')}</p>
           </div>
 
           {error && (
@@ -109,7 +117,7 @@ export default function Login() {
             <form onSubmit={handleSendOtp} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Phone Number
+                  {t('login.phoneLabel')}
                 </label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -118,11 +126,11 @@ export default function Login() {
                     value={formatPhone(phone)}
                     onChange={handlePhoneChange}
                     className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sushi-500 focus:border-transparent text-lg"
-                    placeholder="(555) 123-4567"
+                    placeholder={t('login.phonePlaceholder')}
                     autoFocus
                   />
                 </div>
-                <p className="mt-2 text-xs text-gray-500">We'll send you a verification code via SMS</p>
+                <p className="mt-2 text-xs text-gray-500">{t('login.phoneHint')}</p>
               </div>
 
               <button
@@ -131,10 +139,10 @@ export default function Login() {
                 className="w-full bg-sushi-600 hover:bg-sushi-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center"
               >
                 {loading ? (
-                  <span>Sending code...</span>
+                  <span>{t('login.sendingCode')}</span>
                 ) : (
                   <>
-                    <span>Send Verification Code</span>
+                    <span>{t('login.sendCode')}</span>
                     <ArrowRight className="ml-2" size={20} />
                   </>
                 )}
@@ -144,7 +152,7 @@ export default function Login() {
             <form onSubmit={handleVerifyOtp} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Verification Code
+                  {t('login.verificationCode')}
                 </label>
                 <div className="relative">
                   <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -153,13 +161,13 @@ export default function Login() {
                     value={code}
                     onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sushi-500 focus:border-transparent text-2xl tracking-[0.5em] text-center"
-                    placeholder="000000"
+                    placeholder={t('login.codePlaceholder')}
                     maxLength={6}
                     autoFocus
                   />
                 </div>
                 <p className="mt-2 text-xs text-gray-500">
-                  Sent to {formatPhone(phone)}
+                  {t('login.sentTo', { phone: formatPhone(phone) })}
                 </p>
               </div>
 
@@ -168,7 +176,7 @@ export default function Login() {
                 disabled={loading || code.length !== 6}
                 className="w-full bg-sushi-600 hover:bg-sushi-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center"
               >
-                {loading ? 'Verifying...' : 'Verify & Sign In'}
+                {loading ? t('login.verifying') : t('login.verify')}
               </button>
 
               <div className="flex items-center justify-between text-sm">
@@ -177,7 +185,7 @@ export default function Login() {
                   onClick={() => { setStep('phone'); setCode(''); setError(''); }}
                   className="text-gray-400 hover:text-white transition"
                 >
-                  ← Change number
+                  {t('login.changeNumber')}
                 </button>
                 <button
                   type="button"
@@ -185,7 +193,7 @@ export default function Login() {
                   disabled={countdown > 0}
                   className="text-sushi-400 hover:text-sushi-300 disabled:text-gray-600 transition"
                 >
-                  {countdown > 0 ? `Resend in ${countdown}s` : 'Resend code'}
+                  {countdown > 0 ? t('login.resendIn', { seconds: countdown }) : t('login.resendCode')}
                 </button>
               </div>
             </form>
@@ -193,8 +201,7 @@ export default function Login() {
 
           <div className="mt-8 pt-6 border-t border-gray-700">
             <p className="text-xs text-gray-500 text-center">
-              By signing in, you agree to our Loyalty Rewards terms. 
-              Earn a free meal for every 10 visits in 3 months! 🎉
+              {t('login.terms')}
             </p>
           </div>
         </div>

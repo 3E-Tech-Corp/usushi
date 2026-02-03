@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Gift, CheckCircle } from 'lucide-react';
 import api from '../services/api';
 
@@ -13,6 +14,7 @@ interface RewardDto {
 }
 
 export default function Rewards() {
+  const { t } = useTranslation();
   const [rewards, setRewards] = useState<RewardDto[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +34,7 @@ export default function Rewards() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-gray-400">Loading rewards...</div>
+        <div className="text-gray-400">{t('rewards.loadingRewards')}</div>
       </div>
     );
   }
@@ -42,14 +44,14 @@ export default function Rewards() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-6">My Rewards 🎁</h1>
+      <h1 className="text-2xl font-bold text-white mb-6">{t('rewards.title')}</h1>
 
       {rewards.length === 0 ? (
         <div className="bg-gray-800 rounded-xl border border-gray-700 p-12 text-center">
           <Gift className="mx-auto text-gray-500 mb-4" size={48} />
-          <h2 className="text-lg font-semibold text-white mb-2">No rewards yet</h2>
+          <h2 className="text-lg font-semibold text-white mb-2">{t('rewards.noRewardsTitle')}</h2>
           <p className="text-gray-400">
-            Complete 10 meals in a 3-month period to earn a free meal! Keep dining and uploading receipts.
+            {t('rewards.noRewardsHint')}
           </p>
         </div>
       ) : (
@@ -59,23 +61,23 @@ export default function Rewards() {
             <div>
               <h2 className="text-lg font-semibold text-green-400 mb-3 flex items-center">
                 <Gift size={20} className="mr-2" />
-                Ready to Redeem ({earned.length})
+                {t('rewards.readyToRedeem', { count: earned.length })}
               </h2>
               <div className="space-y-3">
                 {earned.map(reward => (
                   <div key={reward.id} className="bg-green-900/20 border border-green-700/50 rounded-xl p-5">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-white font-semibold text-lg">🎉 Free Meal</h3>
+                        <h3 className="text-white font-semibold text-lg">{t('rewards.freeMeal')}</h3>
                         <p className="text-green-300 text-sm mt-1">
-                          Earned on {formatDate(reward.earnedAt)}
+                          {t('rewards.earnedOn', { date: formatDate(reward.earnedAt) })}
                         </p>
                         <p className="text-gray-400 text-xs mt-1">
-                          Period: {formatDate(reward.periodStart)} – {formatDate(reward.periodEnd)}
+                          {t('rewards.period', { start: formatDate(reward.periodStart), end: formatDate(reward.periodEnd) })}
                         </p>
                       </div>
                       <div className="bg-green-800/50 text-green-300 px-4 py-2 rounded-lg text-sm font-medium">
-                        Show to staff to redeem
+                        {t('rewards.showToStaff')}
                       </div>
                     </div>
                   </div>
@@ -89,21 +91,21 @@ export default function Rewards() {
             <div>
               <h2 className="text-lg font-semibold text-gray-400 mb-3 flex items-center">
                 <CheckCircle size={20} className="mr-2" />
-                Redeemed ({redeemed.length})
+                {t('rewards.redeemed', { count: redeemed.length })}
               </h2>
               <div className="space-y-3">
                 {redeemed.map(reward => (
                   <div key={reward.id} className="bg-gray-800 border border-gray-700 rounded-xl p-5 opacity-75">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-gray-300 font-semibold">Free Meal</h3>
+                        <h3 className="text-gray-300 font-semibold">{t('rewards.freeMealPlain')}</h3>
                         <p className="text-gray-500 text-sm mt-1">
-                          Earned {formatDate(reward.earnedAt)} · Redeemed {reward.redeemedAt ? formatDate(reward.redeemedAt) : ''}
+                          {t('rewards.earnedRedeemed', { earned: formatDate(reward.earnedAt), redeemed: reward.redeemedAt ? formatDate(reward.redeemedAt) : '' })}
                         </p>
                       </div>
                       <span className="text-gray-500 text-sm flex items-center">
                         <CheckCircle size={16} className="mr-1" />
-                        Redeemed
+                        {t('rewards.redeemedLabel')}
                       </span>
                     </div>
                   </div>

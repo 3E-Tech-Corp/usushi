@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -15,13 +16,14 @@ import AdminRewards from './pages/admin/AdminRewards';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
+  const { t } = useTranslation();
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="text-5xl mb-4 animate-bounce">🍣</div>
-          <p className="text-gray-400">Loading...</p>
+          <p className="text-gray-400">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -32,11 +34,12 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { isAdmin, isAuthenticated, isLoading } = useAuth();
+  const { t } = useTranslation();
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-gray-400">Loading...</div>
+        <div className="text-gray-400">{t('common.loading')}</div>
       </div>
     );
   }
@@ -48,13 +51,14 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { t } = useTranslation();
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="text-5xl mb-4 animate-bounce">🍣</div>
-          <p className="text-gray-400">Loading...</p>
+          <p className="text-gray-400">{t('common.loading')}</p>
         </div>
       </div>
     );

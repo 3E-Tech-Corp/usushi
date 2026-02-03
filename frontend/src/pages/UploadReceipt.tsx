@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Camera, Upload, Check, X, Edit3 } from 'lucide-react';
 import api from '../services/api';
 
@@ -12,6 +13,7 @@ interface UploadResponse {
 }
 
 export default function UploadReceipt() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -45,7 +47,7 @@ export default function UploadReceipt() {
         setTimeout(() => navigate('/'), 2000);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      setError(err instanceof Error ? err.message : t('upload.uploadFailed'));
     } finally {
       setUploading(false);
     }
@@ -60,7 +62,7 @@ export default function UploadReceipt() {
       await api.post(`/meals/${result.mealId}/confirm`, { manualTotal: total });
       navigate('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Confirmation failed');
+      setError(err instanceof Error ? err.message : t('upload.confirmFailed'));
     } finally {
       setConfirming(false);
     }
@@ -77,7 +79,7 @@ export default function UploadReceipt() {
 
   return (
     <div className="max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold text-white mb-6">Upload Receipt 📸</h1>
+      <h1 className="text-2xl font-bold text-white mb-6">{t('upload.title')}</h1>
 
       {error && (
         <div className="mb-4 p-3 bg-red-900/50 border border-red-500 text-red-300 rounded-lg text-sm">
@@ -89,19 +91,19 @@ export default function UploadReceipt() {
       {result && !result.needsManualEntry && (
         <div className="bg-green-900/20 border border-green-700/50 rounded-xl p-6 text-center">
           <div className="text-5xl mb-4">✅</div>
-          <h2 className="text-xl font-bold text-green-400 mb-2">Receipt Verified!</h2>
+          <h2 className="text-xl font-bold text-green-400 mb-2">{t('upload.receiptVerified')}</h2>
           <div className="space-y-2 text-gray-300">
             {result.extractedRestaurant && (
-              <p><span className="text-gray-500">Restaurant:</span> {result.extractedRestaurant}</p>
+              <p><span className="text-gray-500">{t('upload.restaurantLabel')}</span> {result.extractedRestaurant}</p>
             )}
             {result.extractedTotal && (
-              <p><span className="text-gray-500">Total:</span> ${result.extractedTotal.toFixed(2)}</p>
+              <p><span className="text-gray-500">{t('upload.totalLabel')}</span> ${result.extractedTotal.toFixed(2)}</p>
             )}
             {result.extractedDate && (
-              <p><span className="text-gray-500">Date:</span> {result.extractedDate}</p>
+              <p><span className="text-gray-500">{t('upload.dateLabel')}</span> {result.extractedDate}</p>
             )}
           </div>
-          <p className="text-gray-400 text-sm mt-4">Redirecting to dashboard...</p>
+          <p className="text-gray-400 text-sm mt-4">{t('upload.redirecting')}</p>
         </div>
       )}
 
@@ -110,8 +112,8 @@ export default function UploadReceipt() {
         <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-xl p-6">
           <div className="text-center mb-4">
             <Edit3 className="inline text-yellow-400" size={32} />
-            <h2 className="text-lg font-bold text-yellow-400 mt-2">Manual Entry Needed</h2>
-            <p className="text-gray-400 text-sm">We couldn't read the total from your receipt. Please enter it manually.</p>
+            <h2 className="text-lg font-bold text-yellow-400 mt-2">{t('upload.manualEntryNeeded')}</h2>
+            <p className="text-gray-400 text-sm">{t('upload.manualEntryHint')}</p>
           </div>
 
           {preview && (
@@ -124,17 +126,17 @@ export default function UploadReceipt() {
           {(result.extractedRestaurant || result.extractedDate) && (
             <div className="mb-4 p-3 bg-gray-800 rounded-lg text-sm">
               {result.extractedRestaurant && (
-                <p className="text-gray-300"><span className="text-gray-500">Restaurant:</span> {result.extractedRestaurant}</p>
+                <p className="text-gray-300"><span className="text-gray-500">{t('upload.restaurantLabel')}</span> {result.extractedRestaurant}</p>
               )}
               {result.extractedDate && (
-                <p className="text-gray-300"><span className="text-gray-500">Date:</span> {result.extractedDate}</p>
+                <p className="text-gray-300"><span className="text-gray-500">{t('upload.dateLabel')}</span> {result.extractedDate}</p>
               )}
             </div>
           )}
 
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Total Amount ($)
+              {t('upload.totalAmount')}
             </label>
             <input
               type="number"
@@ -143,7 +145,7 @@ export default function UploadReceipt() {
               value={manualTotal}
               onChange={(e) => setManualTotal(e.target.value)}
               className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sushi-500 focus:border-transparent text-lg"
-              placeholder="0.00"
+              placeholder={t('upload.totalPlaceholder')}
               autoFocus
             />
           </div>
@@ -155,7 +157,7 @@ export default function UploadReceipt() {
               className="flex-1 bg-sushi-600 hover:bg-sushi-700 disabled:bg-gray-600 text-white font-semibold py-3 rounded-lg transition flex items-center justify-center"
             >
               <Check size={18} className="mr-2" />
-              {confirming ? 'Confirming...' : 'Confirm Meal'}
+              {confirming ? t('upload.confirming') : t('upload.confirmMeal')}
             </button>
             <button
               onClick={resetUpload}
@@ -176,8 +178,8 @@ export default function UploadReceipt() {
               className="border-2 border-dashed border-gray-600 hover:border-sushi-500 rounded-xl p-12 text-center cursor-pointer transition-all hover:bg-gray-800/50"
             >
               <Camera className="mx-auto text-gray-400 mb-4" size={48} />
-              <p className="text-white font-medium mb-2">Tap to take a photo or select an image</p>
-              <p className="text-gray-500 text-sm">Supports JPG, PNG, WebP (max 10MB)</p>
+              <p className="text-white font-medium mb-2">{t('upload.tapToPhoto')}</p>
+              <p className="text-gray-500 text-sm">{t('upload.supportedFormats')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -199,12 +201,12 @@ export default function UploadReceipt() {
                 {uploading ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                    Scanning receipt...
+                    {t('upload.scanning')}
                   </>
                 ) : (
                   <>
                     <Upload size={18} className="mr-2" />
-                    Upload & Scan Receipt
+                    {t('upload.uploadAndScan')}
                   </>
                 )}
               </button>
