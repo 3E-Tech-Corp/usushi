@@ -97,7 +97,7 @@ export default function ScanPhones() {
     setScanError('');
     setImportResult(null);
     try {
-      const response = await api.upload<ScanPhonesResponse>('/admin/scan-phones', file);
+      const response = await api.upload<ScanPhonesResponse>('/admin/phone-scan', file);
       setScannedPhones(response.phones);
       // Auto-select all non-existing, non-uncertain phones
       const autoSelected = new Set<string>();
