@@ -66,9 +66,12 @@ public class MealsController : ControllerBase
 
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        // Save file
-        var uploadsPath = _config["Uploads:ReceiptsPath"] ?? Path.Combine(_env.ContentRootPath, "wwwroot", "uploads", "receipts");
-        _logger.LogInformation("Uploads path: {Path}, ContentRoot: {Root}", uploadsPath, _env.ContentRootPath);
+        // Save file — use AppContext.BaseDirectory which works reliably on IIS
+        var basePath = AppContext.BaseDirectory;
+        var uploadsPath = _config["Uploads:ReceiptsPath"];
+        if (string.IsNullOrEmpty(uploadsPath))
+            uploadsPath = Path.Combine(basePath, "wwwroot", "uploads", "receipts");
+        _logger.LogInformation("Uploads path: {Path}, BaseDir: {Base}", uploadsPath, basePath);
         Directory.CreateDirectory(uploadsPath);
 
         var fileName = $"{userId}_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}{extension}";
