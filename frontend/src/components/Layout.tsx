@@ -8,6 +8,7 @@ const customerNav = [
   { path: '/meals', label: '🍱 My Meals' },
   { path: '/rewards', label: '🎁 Rewards' },
   { path: '/notifications', label: '🔔 Notifications' },
+  { path: '/profile', label: '👤 My Profile' },
 ];
 
 const adminNav = [

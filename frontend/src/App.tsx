@@ -7,6 +7,7 @@ import UploadReceipt from './pages/UploadReceipt';
 import Meals from './pages/Meals';
 import Rewards from './pages/Rewards';
 import Notifications from './pages/Notifications';
+import Profile from './pages/Profile';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
 import SmsBroadcast from './pages/admin/SmsBroadcast';
@@ -81,6 +82,7 @@ export default function App() {
         <Route path="meals" element={<Meals />} />
         <Route path="rewards" element={<Rewards />} />
         <Route path="notifications" element={<Notifications />} />
+        <Route path="profile" element={<Profile />} />
 
         {/* Admin routes */}
         <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
