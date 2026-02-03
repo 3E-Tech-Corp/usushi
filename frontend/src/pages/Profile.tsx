@@ -4,13 +4,15 @@ import api from '../services/api';
 
 export default function Profile() {
   const { user } = useAuth();
-  const [displayName, setDisplayName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
-    if (user?.displayName) {
-      setDisplayName(user.displayName);
+    if (user) {
+      setFirstName((user as any).firstName || '');
+      setLastName((user as any).lastName || '');
     }
   }, [user]);
 
@@ -27,10 +29,12 @@ export default function Profile() {
     setMessage(null);
 
     try {
-      await api.put<{ message: string }>('/auth/profile', { displayName: displayName.trim() || null });
+      await api.put<{ message: string }>('/auth/profile', {
+        firstName: firstName.trim() || null,
+        lastName: lastName.trim() || null,
+      });
       setMessage({ type: 'success', text: 'Profile updated!' });
-      // Update the user in context by reloading
-      window.location.reload();
+      setTimeout(() => window.location.reload(), 800);
     } catch {
       setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' });
     } finally {
@@ -53,17 +57,33 @@ export default function Profile() {
             <p className="text-xs text-gray-500 mt-1">Phone number cannot be changed</p>
           </div>
 
-          {/* Display Name */}
+          {/* First Name */}
           <div>
-            <label htmlFor="displayName" className="block text-sm font-medium text-gray-400 mb-1">
-              Display Name
+            <label htmlFor="firstName" className="block text-sm font-medium text-gray-400 mb-1">
+              First Name
             </label>
             <input
-              id="displayName"
+              id="firstName"
               type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Enter your name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="Enter your first name"
+              maxLength={100}
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Last Name */}
+          <div>
+            <label htmlFor="lastName" className="block text-sm font-medium text-gray-400 mb-1">
+              Last Name
+            </label>
+            <input
+              id="lastName"
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              placeholder="Enter your last name"
               maxLength={100}
               className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             />

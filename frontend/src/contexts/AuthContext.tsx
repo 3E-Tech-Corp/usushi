@@ -5,6 +5,8 @@ interface User {
   id: number;
   phone: string;
   displayName: string | null;
+  firstName: string | null;
+  lastName: string | null;
   role: string;
   isActive: boolean;
 }

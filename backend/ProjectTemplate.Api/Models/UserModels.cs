@@ -7,6 +7,8 @@ public class User
     public int Id { get; set; }
     public string Phone { get; set; } = string.Empty;
     public string? DisplayName { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
     public string Role { get; set; } = "User";
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; }
@@ -85,6 +87,8 @@ public class LoginResponse
     public string Token { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string? DisplayName { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
     public string Role { get; set; } = string.Empty;
     public DateTime ExpiresAt { get; set; }
 }
@@ -94,6 +98,8 @@ public class UserDto
     public int Id { get; set; }
     public string Phone { get; set; } = string.Empty;
     public string? DisplayName { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
     public string Role { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -104,6 +110,8 @@ public class UserWithStats
     public int Id { get; set; }
     public string Phone { get; set; } = string.Empty;
     public string? DisplayName { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
     public string Role { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -113,7 +121,8 @@ public class UserWithStats
 
 public class UpdateProfileRequest
 {
-    public string? DisplayName { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
 }
 
 public class UpdateUserRequest

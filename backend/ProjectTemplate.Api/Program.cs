@@ -184,6 +184,14 @@ using (var scope = app.Services.CreateScope())
                     CREATE INDEX IX_Notifications_UserId ON Notifications(UserId);
                 END
             ");
+            // Add FirstName/LastName columns if missing
+            await conn.ExecuteAsync(@"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'FirstName')
+                    ALTER TABLE Users ADD FirstName NVARCHAR(100) NULL;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'LastName')
+                    ALTER TABLE Users ADD LastName NVARCHAR(100) NULL;
+            ");
+
             app.Logger.LogInformation("Database migration completed successfully");
         }
         catch (Exception ex)

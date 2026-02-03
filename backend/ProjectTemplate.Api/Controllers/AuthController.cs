@@ -140,6 +140,8 @@ public class AuthController : ControllerBase
             Token = token,
             Phone = user.Phone,
             DisplayName = user.DisplayName,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
             Role = user.Role,
             ExpiresAt = _authService.GetTokenExpiry(token)
         });
@@ -190,7 +192,7 @@ public class AuthController : ControllerBase
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         using var conn = CreateConnection();
         var user = await conn.QueryFirstOrDefaultAsync<UserDto>(
-            "SELECT Id, Phone, DisplayName, Role, IsActive, CreatedAt FROM Users WHERE Id = @Id",
+            "SELECT Id, Phone, DisplayName, FirstName, LastName, Role, IsActive, CreatedAt FROM Users WHERE Id = @Id",
             new { Id = userId });
 
         if (user == null) return NotFound();
@@ -207,9 +209,12 @@ public class AuthController : ControllerBase
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         using var conn = CreateConnection();
 
+        var displayName = string.Join(" ", new[] { request.FirstName?.Trim(), request.LastName?.Trim() }
+            .Where(s => !string.IsNullOrEmpty(s)));
+
         await conn.ExecuteAsync(
-            @"UPDATE Users SET DisplayName = @DisplayName, UpdatedAt = GETUTCDATE() WHERE Id = @Id",
-            new { request.DisplayName, Id = userId });
+            @"UPDATE Users SET FirstName = @FirstName, LastName = @LastName, DisplayName = @DisplayName, UpdatedAt = GETUTCDATE() WHERE Id = @Id",
+            new { request.FirstName, request.LastName, DisplayName = string.IsNullOrWhiteSpace(displayName) ? null : displayName, Id = userId });
 
         return Ok(new { message = "Profile updated" });
     }

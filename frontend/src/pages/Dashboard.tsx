@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Gift, Bell, ChevronRight, TrendingUp } from 'lucide-react';
+import { Camera, Gift, Bell, ChevronRight, TrendingUp, UserCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 
@@ -124,6 +124,23 @@ export default function Dashboard() {
           )}
         </p>
       </div>
+
+      {/* Profile prompt if no name set */}
+      {!user?.displayName && (
+        <div
+          onClick={() => navigate('/profile')}
+          className="bg-orange-900/30 border border-orange-700/50 rounded-xl p-4 mb-6 flex items-center justify-between cursor-pointer hover:bg-orange-900/40 transition"
+        >
+          <div className="flex items-center">
+            <UserCircle className="text-orange-400 mr-3 flex-shrink-0" size={24} />
+            <div>
+              <p className="text-white font-medium">Complete your profile</p>
+              <p className="text-orange-300/70 text-sm">Add your name so we know what to call you!</p>
+            </div>
+          </div>
+          <ChevronRight className="text-orange-400 flex-shrink-0" size={20} />
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
