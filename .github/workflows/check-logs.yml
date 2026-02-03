@@ -10,34 +10,9 @@ jobs:
       - name: Check stdout logs
         shell: powershell
         run: |
-          $sitePath = "F:\New_WWW\Demo_USushi\API"
-          
-          Write-Host "=== web.config ==="
-          $wc = Join-Path $sitePath "web.config"
-          if (Test-Path $wc) { Get-Content $wc } else { Write-Host "NOT FOUND" }
-          
-          Write-Host "`n=== Log files ==="
-          $logPath = Join-Path $sitePath "logs"
-          if (Test-Path $logPath) {
-            Get-ChildItem $logPath -Recurse | ForEach-Object { Write-Host "$($_.FullName) ($($_.Length) bytes)" }
-            $latest = Get-ChildItem $logPath -File | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-            if ($latest) {
-              Write-Host "`n=== Latest: $($latest.Name) ==="
-              Get-Content $latest.FullName -Tail 80
-            }
-          } else {
-            Write-Host "No logs directory - creating it"
-            New-Item -ItemType Directory -Path $logPath -Force | Out-Null
+          $logPath = "F:\New_WWW\Demo_USushi\API\logs"
+          Write-Host "=== All log files ==="
+          Get-ChildItem $logPath -File | ForEach-Object {
+            Write-Host "`n=== $($_.Name) ($($_.Length) bytes) ==="
+            Get-Content $_.FullName
           }
-          
-          Write-Host "`n=== uploads dir ==="
-          $uploads = Join-Path $sitePath "wwwroot\uploads"
-          if (Test-Path $uploads) {
-            Get-ChildItem $uploads -Recurse -Directory | ForEach-Object { Write-Host $_.FullName }
-          } else {
-            Write-Host "NOT FOUND"
-          }
-          
-          Write-Host "`n=== IIS App Pool Status ==="
-          Import-Module WebAdministration
-          Get-WebAppPoolState -Name "Demo_USushi" 2>$null | Format-List
