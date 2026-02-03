@@ -124,7 +124,7 @@ export default function ScanPhones() {
     setImportResult(null);
     try {
       // Resize image to reduce payload (Cloudflare blocks large request bodies)
-      const resized = await resizeImage(preview!, 1024);
+      const resized = await resizeImage(preview!, 2048);
       const response = await api.post<ScanPhonesResponse>('/admin/phone-scan', {
         imageData: resized
       });

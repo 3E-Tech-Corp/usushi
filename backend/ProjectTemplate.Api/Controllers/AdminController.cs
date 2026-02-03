@@ -228,7 +228,7 @@ public class AdminController : ControllerBase
 
             var requestBody = new
             {
-                model = "gpt-4o-mini",
+                model = "gpt-4o",
                 messages = new object[]
                 {
                     new
@@ -239,18 +239,28 @@ public class AdminController : ControllerBase
                             new
                             {
                                 type = "text",
-                                text = @"Analyze this image of handwritten phone numbers. Extract ALL phone numbers you can read.
-For each number, also extract any name written next to it if visible.
+                                text = @"You are reading a handwritten list of US phone numbers. Look carefully at EVERY line.
+
+Instructions:
+- Each line typically has a phone number and optionally a person's name
+- Phone numbers are 10 digits, often written as XXX-XXX-XXXX or (XXX) XXX-XXXX or just 10 digits
+- Read each digit carefully — handwritten 1/7, 4/9, 3/8, 5/6 can look similar. Use context (area codes like 305, 786, 954, 917, 310 are common)
+- If a checkmark ✓ or similar mark appears next to a number, ignore it — just read the number and name
+- Extract the name written next to each number if visible
+
 Respond ONLY with a JSON object (no markdown, no code blocks):
 {
   ""phones"": [
-    {""phone"": ""1234567890"", ""name"": ""John Doe""},
+    {""phone"": ""3054671234"", ""name"": ""Sharon""},
     {""phone"": ""9876543210"", ""name"": null}
   ]
 }
-Normalize all phone numbers to 10 digits (US format, no country code, no dashes/spaces/parentheses).
-If you cannot read a number clearly, include your best guess but add ""uncertain"": true.
-If the image doesn't contain phone numbers, return {""phones"": []}."
+
+Rules:
+- Normalize to exactly 10 digits (no dashes, spaces, or parentheses)
+- If a digit is truly unreadable, use your best guess based on the shape and mark ""uncertain"": true
+- Do NOT skip any line — extract every phone number visible in the image
+- If the image doesn't contain phone numbers, return {""phones"": []}"
                             },
                             new
                             {
@@ -258,13 +268,13 @@ If the image doesn't contain phone numbers, return {""phones"": []}."
                                 image_url = new
                                 {
                                     url = $"data:{mimeType};base64,{base64Image}",
-                                    detail = "low"
+                                    detail = "high"
                                 }
                             }
                         }
                     }
                 },
-                max_tokens = 2000
+                max_tokens = 4000
             };
 
             var httpClient = _httpClientFactory.CreateClient("OpenAI");
