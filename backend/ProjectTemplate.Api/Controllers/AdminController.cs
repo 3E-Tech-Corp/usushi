@@ -217,7 +217,7 @@ public class AdminController : ControllerBase
 
             // Save file
             var basePath = AppContext.BaseDirectory;
-            var uploadsPath = Path.Combine(basePath, "uploads", "scan-phones");
+            var uploadsPath = Path.Combine(basePath, "wwwroot", "uploads", "scan-phones");
             Directory.CreateDirectory(uploadsPath);
 
             var fileName = $"scan_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}{extension}";

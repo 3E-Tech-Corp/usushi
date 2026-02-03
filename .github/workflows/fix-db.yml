@@ -72,21 +72,27 @@ jobs:
         shell: powershell
         run: |
           $siteName = "${{ github.event.inputs.site_name }}"
-          $uploadsPath = "F:\New_WWW\$siteName\API\wwwroot\uploads\receipts"
+          $uploadsBase = "F:\New_WWW\$siteName\API\wwwroot\uploads"
           $appPoolIdentity = "IIS AppPool\$siteName"
           
-          if (!(Test-Path $uploadsPath)) {
-            New-Item -ItemType Directory -Path $uploadsPath -Force | Out-Null
-            Write-Host "Created: $uploadsPath"
+          # Create all upload subdirectories
+          $subDirs = @("receipts", "scan-phones")
+          foreach ($dir in $subDirs) {
+            $fullPath = Join-Path $uploadsBase $dir
+            if (!(Test-Path $fullPath)) {
+              New-Item -ItemType Directory -Path $fullPath -Force | Out-Null
+              Write-Host "Created: $fullPath"
+            }
           }
           
-          $acl = Get-Acl $uploadsPath
+          # Grant Modify on the parent uploads folder (covers all subdirs)
+          $acl = Get-Acl $uploadsBase
           $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
             $appPoolIdentity, "Modify", "ContainerInherit,ObjectInherit", "None", "Allow"
           )
           $acl.SetAccessRule($rule)
-          Set-Acl -Path $uploadsPath -AclObject $acl
-          Write-Host "[OK] Granted Modify to $appPoolIdentity on $uploadsPath"
+          Set-Acl -Path $uploadsBase -AclObject $acl
+          Write-Host "[OK] Granted Modify to $appPoolIdentity on $uploadsBase (covers all subdirs)"
 
       - name: Health check
         shell: powershell
