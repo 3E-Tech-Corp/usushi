@@ -74,9 +74,6 @@ public class MealsController : ControllerBase
             {
                 UserId = userId,
                 PhotoPath = relativePath,
-                receiptData.Total,
-                receiptData.Date,
-                receiptData.Restaurant,
                 ExtractedTotal = receiptData.Total,
                 ExtractedDate = receiptData.Date,
                 ExtractedRestaurant = receiptData.Restaurant,

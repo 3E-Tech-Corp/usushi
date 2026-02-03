@@ -68,6 +68,26 @@ jobs:
           Start-Sleep -Seconds 3
           Write-Host "[OK] App pool restarted"
 
+      - name: Fix uploads folder permissions
+        shell: powershell
+        run: |
+          $siteName = "${{ github.event.inputs.site_name }}"
+          $uploadsPath = "F:\New_WWW\$siteName\API\wwwroot\uploads\receipts"
+          $appPoolIdentity = "IIS AppPool\$siteName"
+          
+          if (!(Test-Path $uploadsPath)) {
+            New-Item -ItemType Directory -Path $uploadsPath -Force | Out-Null
+            Write-Host "Created: $uploadsPath"
+          }
+          
+          $acl = Get-Acl $uploadsPath
+          $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+            $appPoolIdentity, "Modify", "ContainerInherit,ObjectInherit", "None", "Allow"
+          )
+          $acl.SetAccessRule($rule)
+          Set-Acl -Path $uploadsPath -AclObject $acl
+          Write-Host "[OK] Granted Modify to $appPoolIdentity on $uploadsPath"
+
       - name: Health check
         shell: powershell
         run: |
