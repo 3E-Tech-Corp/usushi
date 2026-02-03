@@ -32,7 +32,8 @@
     "adminDashboard": "📊 Dashboard",
     "adminUsers": "👥 Users",
     "adminRewards": "🎁 Rewards",
-    "smsBroadcast": "📱 SMS Broadcast"
+    "smsBroadcast": "📱 SMS Broadcast",
+    "scanPhones": "📷 Scan Phones"
   },
   "login": {
     "title": "USushi",
@@ -174,7 +175,13 @@
     "joinedColumn": "Joined",
     "actionsColumn": "Actions",
     "noUsersFound": "No users found",
-    "loadingUsers": "Loading users..."
+    "loadingUsers": "Loading users...",
+    "verified": "Verified",
+    "unverified": "Unverified",
+    "sendTestSms": "Send Test SMS",
+    "sendingTo": "Sending to {{phone}}",
+    "smsPlaceholder": "Type your test message...",
+    "sendButton": "Send"
   },
   "adminRewards": {
     "title": "Manage Rewards",
@@ -207,6 +214,41 @@
     "recipients": "{{count}} recipients",
     "noBroadcasts": "No broadcasts sent yet",
     "sendFailed": "Failed to send broadcast"
+  },
+  "scanPhones": {
+    "title": "Scan Phone Numbers 📷",
+    "uploadTitle": "Upload Phone List",
+    "tapToUpload": "Tap to take a photo or select an image",
+    "uploadHint": "Upload a photo of handwritten phone numbers",
+    "scanButton": "Scan & Extract Numbers",
+    "scanning": "Scanning numbers...",
+    "scanFailed": "Failed to scan image",
+    "foundNumbers": "Found {{count}} phone numbers",
+    "phoneColumn": "Phone",
+    "nameColumn": "Name",
+    "statusColumn": "Status",
+    "alreadyExists": "Already exists",
+    "uncertain": "Uncertain",
+    "newContact": "New",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "scanAnother": "Scan another",
+    "importSelected": "Import {{count}} Selected",
+    "importing": "Importing...",
+    "importFailed": "Failed to import numbers",
+    "importSuccess": "Import Complete!",
+    "importedCount": "{{count}} contacts imported",
+    "skippedCount": "{{count}} skipped (already exist)",
+    "unverifiedTitle": "Unverified Contacts",
+    "noUnverified": "No unverified contacts",
+    "addedColumn": "Added",
+    "actionsColumn": "Actions",
+    "sendTestSms": "Send Test SMS",
+    "sendTestSmsTitle": "Send Test SMS",
+    "sendingTo": "Sending to {{phone}}",
+    "smsPlaceholder": "Type your test message...",
+    "send": "Send",
+    "smsFailed": "Failed to send SMS"
   },
   "language": {
     "en": "EN",

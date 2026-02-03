@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Shield, User, Search, Download } from 'lucide-react';
+import { Shield, User, Search, Download, CheckCircle, AlertCircle, Send, Loader2 } from 'lucide-react';
 import api from '../../services/api';
 
 interface UserWithStats {
@@ -9,6 +9,7 @@ interface UserWithStats {
   displayName: string | null;
   role: string;
   isActive: boolean;
+  isPhoneVerified: boolean;
   createdAt: string;
   mealCount: number;
   lastMealAt: string | null;
@@ -21,6 +22,10 @@ export default function AdminUsers() {
   const [search, setSearch] = useState('');
   const [editingUser, setEditingUser] = useState<UserWithStats | null>(null);
   const [saving, setSaving] = useState(false);
+  const [smsUserId, setSmsUserId] = useState<number | null>(null);
+  const [smsMessage, setSmsMessage] = useState('');
+  const [sendingSms, setSendingSms] = useState(false);
+  const [smsSuccess, setSmsSuccess] = useState('');
 
   const loadUsers = () => {
     api.get<UserWithStats[]>('/admin/users')
@@ -59,6 +64,24 @@ export default function AdminUsers() {
       console.error(err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSendTestSms = async () => {
+    if (!smsUserId || !smsMessage.trim()) return;
+    setSendingSms(true);
+    setSmsSuccess('');
+    try {
+      const res = await api.post<{ message: string }>(`/admin/test-sms/${smsUserId}`, {
+        message: smsMessage
+      });
+      setSmsSuccess(res.message);
+      setSmsMessage('');
+      setSmsUserId(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSendingSms(false);
     }
   };
 
@@ -213,7 +236,19 @@ export default function AdminUsers() {
                         <User className="text-gray-500 mr-2 flex-shrink-0" size={16} />
                       )}
                       <div>
-                        <p className="text-white font-medium">{u.displayName || formatPhone(u.phone)}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-white font-medium">{u.displayName || formatPhone(u.phone)}</p>
+                          {u.isPhoneVerified ? (
+                            <span className="inline-flex items-center gap-0.5 text-xs text-green-400" title={t('adminUsers.verified')}>
+                              <CheckCircle size={12} />
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full bg-yellow-900/50 text-yellow-400">
+                              <AlertCircle size={10} />
+                              {t('adminUsers.unverified')}
+                            </span>
+                          )}
+                        </div>
                         {u.displayName && <p className="text-gray-500 text-xs">{formatPhone(u.phone)}</p>}
                       </div>
                     </div>
@@ -231,12 +266,23 @@ export default function AdminUsers() {
                   </td>
                   <td className="px-5 py-4 text-gray-400 text-sm">{formatDate(u.createdAt)}</td>
                   <td className="px-5 py-4 text-right">
-                    <button
-                      onClick={() => setEditingUser({ ...u })}
-                      className="text-sushi-400 hover:text-sushi-300 text-sm"
-                    >
-                      {t('common.edit')}
-                    </button>
+                    <div className="flex items-center justify-end gap-3">
+                      {!u.isPhoneVerified && (
+                        <button
+                          onClick={() => { setSmsUserId(u.id); setSmsMessage(''); setSmsSuccess(''); }}
+                          className="inline-flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300"
+                          title={t('adminUsers.sendTestSms')}
+                        >
+                          <Send size={14} />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setEditingUser({ ...u })}
+                        className="text-sushi-400 hover:text-sushi-300 text-sm"
+                      >
+                        {t('common.edit')}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -247,6 +293,61 @@ export default function AdminUsers() {
           <div className="p-8 text-center text-gray-400">{t('adminUsers.noUsersFound')}</div>
         )}
       </div>
+
+      {/* SMS Success */}
+      {smsSuccess && (
+        <div className="mt-4 p-3 bg-green-900/50 border border-green-500 text-green-300 rounded-lg text-sm">
+          {smsSuccess}
+        </div>
+      )}
+
+      {/* Test SMS Modal */}
+      {smsUserId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSmsUserId(null)}>
+          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md border border-gray-700" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <Send size={20} className="text-sushi-400" />
+              {t('adminUsers.sendTestSms')}
+            </h2>
+            <p className="text-gray-400 text-sm mb-4">
+              {t('adminUsers.sendingTo', {
+                phone: formatPhone(users.find(u => u.id === smsUserId)?.phone || '')
+              })}
+            </p>
+            <textarea
+              value={smsMessage}
+              onChange={e => setSmsMessage(e.target.value)}
+              maxLength={160}
+              rows={3}
+              placeholder={t('adminUsers.smsPlaceholder')}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sushi-500 resize-none"
+            />
+            <p className="text-gray-500 text-xs mt-1">{smsMessage.length}/160</p>
+            <div className="flex space-x-3 mt-4">
+              <button
+                onClick={handleSendTestSms}
+                disabled={sendingSms || !smsMessage.trim()}
+                className="flex-1 bg-sushi-600 hover:bg-sushi-700 disabled:bg-gray-600 text-white py-2 rounded-lg transition flex items-center justify-center"
+              >
+                {sendingSms ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <>
+                    <Send size={16} className="mr-2" />
+                    {t('adminUsers.sendButton')}
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setSmsUserId(null)}
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg transition"
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

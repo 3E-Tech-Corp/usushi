@@ -23,6 +23,7 @@ export default function Layout() {
     { path: '/admin/users', label: t('nav.adminUsers') },
     { path: '/admin/rewards', label: t('nav.adminRewards') },
     { path: '/admin/sms', label: t('nav.smsBroadcast') },
+    { path: '/admin/scan-phones', label: t('nav.scanPhones') },
   ];
 
   const formatPhone = (phone: string) => {

@@ -32,7 +32,8 @@
     "adminDashboard": "📊 仪表盘",
     "adminUsers": "👥 用户",
     "adminRewards": "🎁 奖励",
-    "smsBroadcast": "📱 短信群发"
+    "smsBroadcast": "📱 短信群发",
+    "scanPhones": "📷 扫描号码"
   },
   "login": {
     "title": "USushi",
@@ -174,7 +175,13 @@
     "joinedColumn": "注册时间",
     "actionsColumn": "操作",
     "noUsersFound": "未找到用户",
-    "loadingUsers": "正在加载用户..."
+    "loadingUsers": "正在加载用户...",
+    "verified": "已验证",
+    "unverified": "未验证",
+    "sendTestSms": "发送测试短信",
+    "sendingTo": "发送至 {{phone}}",
+    "smsPlaceholder": "输入测试消息...",
+    "sendButton": "发送"
   },
   "adminRewards": {
     "title": "奖励管理",
@@ -207,6 +214,41 @@
     "recipients": "{{count}} 位接收者",
     "noBroadcasts": "暂无群发记录",
     "sendFailed": "发送群发失败"
+  },
+  "scanPhones": {
+    "title": "扫描手机号码 📷",
+    "uploadTitle": "上传号码列表",
+    "tapToUpload": "点击拍照或选择图片",
+    "uploadHint": "上传手写手机号码的照片",
+    "scanButton": "扫描并提取号码",
+    "scanning": "正在扫描号码...",
+    "scanFailed": "扫描图片失败",
+    "foundNumbers": "找到 {{count}} 个手机号码",
+    "phoneColumn": "手机号",
+    "nameColumn": "姓名",
+    "statusColumn": "状态",
+    "alreadyExists": "已存在",
+    "uncertain": "不确定",
+    "newContact": "新联系人",
+    "selectAll": "全选",
+    "deselectAll": "取消全选",
+    "scanAnother": "扫描另一张",
+    "importSelected": "导入 {{count}} 个已选",
+    "importing": "正在导入...",
+    "importFailed": "导入号码失败",
+    "importSuccess": "导入完成！",
+    "importedCount": "已导入 {{count}} 个联系人",
+    "skippedCount": "跳过 {{count}} 个（已存在）",
+    "unverifiedTitle": "未验证联系人",
+    "noUnverified": "暂无未验证联系人",
+    "addedColumn": "添加时间",
+    "actionsColumn": "操作",
+    "sendTestSms": "发送测试短信",
+    "sendTestSmsTitle": "发送测试短信",
+    "sendingTo": "发送至 {{phone}}",
+    "smsPlaceholder": "输入测试消息...",
+    "send": "发送",
+    "smsFailed": "发送短信失败"
   },
   "language": {
     "en": "EN",

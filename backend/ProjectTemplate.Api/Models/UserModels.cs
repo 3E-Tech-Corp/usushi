@@ -114,6 +114,7 @@ public class UserWithStats
     public string? LastName { get; set; }
     public string Role { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+    public bool IsPhoneVerified { get; set; } = true;
     public DateTime CreatedAt { get; set; }
     public int MealCount { get; set; }
     public DateTime? LastMealAt { get; set; }
@@ -211,4 +212,36 @@ public class SmsBroadcastDto
 public class SetupRequest
 {
     public string Phone { get; set; } = string.Empty;
+}
+
+// ─── Phone Scanning DTOs ───
+
+public class ScannedPhone
+{
+    public string Phone { get; set; } = string.Empty;
+    public string? Name { get; set; }
+    public bool AlreadyExists { get; set; }
+    public bool Uncertain { get; set; }
+}
+
+public class ScanPhonesResponse
+{
+    public List<ScannedPhone> Phones { get; set; } = new();
+}
+
+public class ImportPhonesRequest
+{
+    public List<string> Phones { get; set; } = new();
+}
+
+public class ImportPhonesResponse
+{
+    public int ImportedCount { get; set; }
+    public int SkippedCount { get; set; }
+    public List<string> ImportedPhones { get; set; } = new();
+}
+
+public class TestSmsRequest
+{
+    public string Message { get; set; } = string.Empty;
 }

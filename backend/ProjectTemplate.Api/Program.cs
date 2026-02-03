@@ -192,6 +192,12 @@ using (var scope = app.Services.CreateScope())
                     ALTER TABLE Users ADD LastName NVARCHAR(100) NULL;
             ");
 
+            // Migration 002: Add IsPhoneVerified column
+            await conn.ExecuteAsync(@"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Users') AND name = 'IsPhoneVerified')
+                    ALTER TABLE Users ADD IsPhoneVerified BIT NOT NULL DEFAULT 1;
+            ");
+
             app.Logger.LogInformation("Database migration completed successfully");
         }
         catch (Exception ex)

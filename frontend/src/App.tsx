@@ -13,6 +13,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
 import SmsBroadcast from './pages/admin/SmsBroadcast';
 import AdminRewards from './pages/admin/AdminRewards';
+import ScanPhones from './pages/admin/ScanPhones';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -93,6 +94,7 @@ export default function App() {
         <Route path="admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
         <Route path="admin/rewards" element={<AdminRoute><AdminRewards /></AdminRoute>} />
         <Route path="admin/sms" element={<AdminRoute><SmsBroadcast /></AdminRoute>} />
+        <Route path="admin/scan-phones" element={<AdminRoute><ScanPhones /></AdminRoute>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" />} />
