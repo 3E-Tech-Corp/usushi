@@ -92,12 +92,15 @@ export default function ScanPhones() {
   };
 
   const handleScan = async () => {
-    if (!file) return;
+    if (!file || !preview) return;
     setScanning(true);
     setScanError('');
     setImportResult(null);
     try {
-      const response = await api.upload<ScanPhonesResponse>('/tools/phone-scan', file);
+      // Send as base64 JSON to avoid Cloudflare WAF blocking multipart uploads
+      const response = await api.post<ScanPhonesResponse>('/admin/phone-scan', {
+        imageData: preview  // preview is already a data URL from FileReader
+      });
       setScannedPhones(response.phones);
       // Auto-select all non-existing, non-uncertain phones
       const autoSelected = new Set<string>();

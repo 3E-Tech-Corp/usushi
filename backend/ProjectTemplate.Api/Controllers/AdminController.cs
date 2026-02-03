@@ -185,48 +185,39 @@ public class AdminController : ControllerBase
 
     /// <summary>
     /// Scan an image of handwritten phone numbers using OpenAI Vision
+    /// Accepts base64-encoded image in JSON body to avoid Cloudflare WAF blocking multipart uploads
     /// </summary>
-    [HttpPost("/tools/phone-scan")]
-    public async Task<IActionResult> ScanPhones(IFormFile file)
+    [HttpPost("phone-scan")]
+    public async Task<IActionResult> ScanPhones([FromBody] PhoneScanRequest scanRequest)
     {
         try
         {
-            if (file == null || file.Length == 0)
-                return BadRequest(new { message = "No file uploaded" });
+            if (string.IsNullOrEmpty(scanRequest?.ImageData))
+                return BadRequest(new { message = "No image data provided" });
 
-            if (file.Length > 10 * 1024 * 1024)
-                return BadRequest(new { message = "File too large (max 10MB)" });
+            // Parse data URL: "data:image/jpeg;base64,/9j/4AAQ..."
+            string base64Image;
+            string mimeType = "image/jpeg";
 
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-            var extension = Path.GetExtension(file.FileName)?.ToLowerInvariant() ?? "";
-
-            if (string.IsNullOrEmpty(extension))
+            if (scanRequest.ImageData.StartsWith("data:"))
             {
-                extension = file.ContentType?.ToLowerInvariant() switch
-                {
-                    "image/jpeg" => ".jpg",
-                    "image/png" => ".png",
-                    "image/gif" => ".gif",
-                    "image/webp" => ".webp",
-                    _ => ".jpg"
-                };
+                var commaIdx = scanRequest.ImageData.IndexOf(',');
+                if (commaIdx < 0)
+                    return BadRequest(new { message = "Invalid image data format" });
+                var header = scanRequest.ImageData[..commaIdx]; // "data:image/jpeg;base64"
+                base64Image = scanRequest.ImageData[(commaIdx + 1)..];
+                var mimeEnd = header.IndexOf(';');
+                if (mimeEnd > 5) // after "data:"
+                    mimeType = header[5..mimeEnd];
+            }
+            else
+            {
+                base64Image = scanRequest.ImageData;
             }
 
-            if (!allowedExtensions.Contains(extension))
-                return BadRequest(new { message = "Invalid file type. Use JPG, PNG, GIF, or WebP." });
-
-            // Save file
-            var basePath = AppContext.BaseDirectory;
-            var uploadsPath = Path.Combine(basePath, "wwwroot", "uploads", "scan-phones");
-            Directory.CreateDirectory(uploadsPath);
-
-            var fileName = $"scan_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}{extension}";
-            var filePath = Path.Combine(uploadsPath, fileName);
-
-            await using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
+            // Validate size (~10MB after base64 decode)
+            if (base64Image.Length > 14_000_000) // ~10MB in base64
+                return BadRequest(new { message = "Image too large (max 10MB)" });
 
             // Send to OpenAI Vision
             var apiKey = _config["OpenAI:ApiKey"];
@@ -234,17 +225,6 @@ public class AdminController : ControllerBase
             {
                 return BadRequest(new { message = "OpenAI API key not configured" });
             }
-
-            var imageBytes = await System.IO.File.ReadAllBytesAsync(filePath);
-            var base64Image = Convert.ToBase64String(imageBytes);
-            var mimeType = extension switch
-            {
-                ".jpg" or ".jpeg" => "image/jpeg",
-                ".png" => "image/png",
-                ".gif" => "image/gif",
-                ".webp" => "image/webp",
-                _ => "image/jpeg"
-            };
 
             var requestBody = new
             {

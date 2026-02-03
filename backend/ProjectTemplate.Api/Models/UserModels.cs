@@ -216,6 +216,11 @@ public class SetupRequest
 
 // ─── Phone Scanning DTOs ───
 
+public class PhoneScanRequest
+{
+    public string ImageData { get; set; } = string.Empty; // base64 or data URL
+}
+
 public class ScannedPhone
 {
     public string Phone { get; set; } = string.Empty;
