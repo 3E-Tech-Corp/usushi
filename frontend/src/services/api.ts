@@ -29,8 +29,15 @@ async function handleResponse<T>(response: Response): Promise<T> {
   }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Request failed' }));
-    throw new ApiError(error.message || 'Request failed', response.status);
+    const text = await response.text();
+    let message = `HTTP ${response.status}`;
+    try {
+      const error = JSON.parse(text);
+      message = error.message || message;
+    } catch {
+      message = text ? `HTTP ${response.status}: ${text.substring(0, 200)}` : `HTTP ${response.status}: ${response.statusText}`;
+    }
+    throw new ApiError(message, response.status);
   }
 
   return response.json();
