@@ -17,13 +17,15 @@ public class MealsController : ControllerBase
     private readonly ReceiptService _receiptService;
     private readonly SmsService _smsService;
     private readonly ILogger<MealsController> _logger;
+    private readonly IWebHostEnvironment _env;
 
-    public MealsController(IConfiguration config, ReceiptService receiptService, SmsService smsService, ILogger<MealsController> logger)
+    public MealsController(IConfiguration config, ReceiptService receiptService, SmsService smsService, ILogger<MealsController> logger, IWebHostEnvironment env)
     {
         _config = config;
         _receiptService = receiptService;
         _smsService = smsService;
         _logger = logger;
+        _env = env;
     }
 
     private SqlConnection CreateConnection() =>
@@ -65,8 +67,8 @@ public class MealsController : ControllerBase
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         // Save file
-        var uploadsPath = _config["Uploads:ReceiptsPath"] ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "receipts");
-        _logger.LogInformation("Uploads path: {Path}, exists: {Exists}", uploadsPath, Directory.Exists(uploadsPath));
+        var uploadsPath = _config["Uploads:ReceiptsPath"] ?? Path.Combine(_env.ContentRootPath, "wwwroot", "uploads", "receipts");
+        _logger.LogInformation("Uploads path: {Path}, ContentRoot: {Root}", uploadsPath, _env.ContentRootPath);
         Directory.CreateDirectory(uploadsPath);
 
         var fileName = $"{userId}_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}{extension}";
