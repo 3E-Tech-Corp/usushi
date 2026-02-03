@@ -35,6 +35,8 @@ public class MealsController : ControllerBase
     [HttpPost("upload")]
     public async Task<IActionResult> UploadReceipt(IFormFile file)
     {
+        try
+        {
         if (file == null || file.Length == 0)
             return BadRequest(new { message = "No file uploaded" });
 
@@ -50,6 +52,7 @@ public class MealsController : ControllerBase
 
         // Save file
         var uploadsPath = _config["Uploads:ReceiptsPath"] ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "receipts");
+        _logger.LogInformation("Uploads path: {Path}, exists: {Exists}", uploadsPath, Directory.Exists(uploadsPath));
         Directory.CreateDirectory(uploadsPath);
 
         var fileName = $"{userId}_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}{extension}";
@@ -94,6 +97,13 @@ public class MealsController : ControllerBase
             ExtractedRestaurant = receiptData.Restaurant,
             NeedsManualEntry = !receiptData.Confident
         });
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Upload receipt failed");
+            return StatusCode(500, new { message = "Upload failed: " + ex.Message });
+        }
     }
 
     /// <summary>
