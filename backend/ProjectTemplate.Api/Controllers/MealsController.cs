@@ -44,7 +44,21 @@ public class MealsController : ControllerBase
             return BadRequest(new { message = "File too large (max 10MB)" });
 
         var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var extension = Path.GetExtension(file.FileName)?.ToLowerInvariant() ?? "";
+        
+        // Fallback: derive extension from content type if filename has none
+        if (string.IsNullOrEmpty(extension))
+        {
+            extension = file.ContentType?.ToLowerInvariant() switch
+            {
+                "image/jpeg" => ".jpg",
+                "image/png" => ".png",
+                "image/gif" => ".gif",
+                "image/webp" => ".webp",
+                _ => ".jpg"
+            };
+        }
+        
         if (!allowedExtensions.Contains(extension))
             return BadRequest(new { message = "Invalid file type. Use JPG, PNG, GIF, or WebP." });
 
