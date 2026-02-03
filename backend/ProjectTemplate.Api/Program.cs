@@ -8,6 +8,16 @@ using Dapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure max request body size (50MB for image uploads)
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 52_428_800; // 50MB
+});
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 52_428_800; // 50MB
+});
+
 // Add services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
