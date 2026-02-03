@@ -32,6 +32,32 @@ interface UserWithStats {
   lastMealAt: string | null;
 }
 
+// Resize image to max dimension to reduce payload size (Cloudflare blocks large bodies)
+function resizeImage(dataUrl: string, maxDim = 1024): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.src = dataUrl;
+  });
+}
+
 export default function ScanPhones() {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -97,9 +123,10 @@ export default function ScanPhones() {
     setScanError('');
     setImportResult(null);
     try {
-      // Send as base64 JSON to avoid Cloudflare WAF blocking multipart uploads
+      // Resize image to reduce payload (Cloudflare blocks large request bodies)
+      const resized = await resizeImage(preview!, 1024);
       const response = await api.post<ScanPhonesResponse>('/admin/phone-scan', {
-        imageData: preview  // preview is already a data URL from FileReader
+        imageData: resized
       });
       setScannedPhones(response.phones);
       // Auto-select all non-existing, non-uncertain phones
