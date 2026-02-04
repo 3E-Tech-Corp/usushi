@@ -234,7 +234,7 @@ using (var scope = app.Services.CreateScope())
                 END
             ");
 
-            // Migration 004: PhoneScans table
+            // Migration 004: PhoneScans table (new installs get ImageAssetId from the start)
             await conn.ExecuteAsync(@"
                 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('dbo.PhoneScans') AND type = 'U')
                 BEGIN
@@ -250,6 +250,10 @@ using (var scope = app.Services.CreateScope())
                         CONSTRAINT FK_PhoneScans_Assets FOREIGN KEY (ImageAssetId) REFERENCES Assets(Id)
                     );
                 END
+                -- Existing installs: add ImageAssetId if PhoneScans was created with ImagePath
+                IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('dbo.PhoneScans') AND type = 'U')
+                   AND NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('PhoneScans') AND name = 'ImageAssetId')
+                    ALTER TABLE PhoneScans ADD ImageAssetId INT NULL;
             ");
 
             // Migration 005: Add ReceiptAssetId to Meals

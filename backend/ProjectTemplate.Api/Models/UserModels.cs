@@ -152,6 +152,7 @@ public class MealDto
     public int Id { get; set; }
     public int UserId { get; set; }
     public string? PhotoPath { get; set; }
+    public int? ReceiptAssetId { get; set; }
     public decimal? ExtractedTotal { get; set; }
     public string? ExtractedDate { get; set; }
     public string? ExtractedRestaurant { get; set; }

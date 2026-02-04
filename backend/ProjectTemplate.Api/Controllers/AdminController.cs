@@ -52,7 +52,7 @@ public class AdminController : ControllerBase
             "SELECT COUNT(*) FROM Rewards WHERE Status = 'Earned'");
 
         var recentMeals = await conn.QueryAsync<MealDto>(
-            @"SELECT TOP 10 m.Id, m.UserId, m.PhotoPath, m.ExtractedTotal, m.ExtractedDate, 
+            @"SELECT TOP 10 m.Id, m.UserId, m.PhotoPath, m.ReceiptAssetId, m.ExtractedTotal, m.ExtractedDate, 
                      m.ExtractedRestaurant, m.ManualTotal, m.Status, m.CreatedAt
               FROM Meals m
               ORDER BY m.CreatedAt DESC");

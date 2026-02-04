@@ -182,7 +182,7 @@ public class MealsController : ControllerBase
 
         var offset = (page - 1) * pageSize;
         var meals = await conn.QueryAsync<MealDto>(
-            @"SELECT Id, UserId, PhotoPath, ExtractedTotal, ExtractedDate, ExtractedRestaurant, ManualTotal, Status, CreatedAt
+            @"SELECT Id, UserId, PhotoPath, ReceiptAssetId, ExtractedTotal, ExtractedDate, ExtractedRestaurant, ManualTotal, Status, CreatedAt
               FROM Meals WHERE UserId = @UserId
               ORDER BY CreatedAt DESC
               OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY",
@@ -214,7 +214,7 @@ public class MealsController : ControllerBase
             new { UserId = userId, PeriodStart = periodStart });
 
         var recentMeals = await conn.QueryAsync<MealDto>(
-            @"SELECT TOP 5 Id, UserId, PhotoPath, ExtractedTotal, ExtractedDate, ExtractedRestaurant, ManualTotal, Status, CreatedAt
+            @"SELECT TOP 5 Id, UserId, PhotoPath, ReceiptAssetId, ExtractedTotal, ExtractedDate, ExtractedRestaurant, ManualTotal, Status, CreatedAt
               FROM Meals WHERE UserId = @UserId AND Status = 'Verified'
               ORDER BY CreatedAt DESC",
             new { UserId = userId });
