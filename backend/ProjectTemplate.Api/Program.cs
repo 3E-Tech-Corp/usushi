@@ -88,6 +88,10 @@ builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<SmsService>();
 builder.Services.AddSingleton<ReceiptService>();
 
+// Asset management services (funtime-shared pattern)
+builder.Services.AddSingleton<IFileStorageService, LocalFileStorageService>();
+builder.Services.AddSingleton<IAssetService, AssetService>();
+
 var app = builder.Build();
 
 // Auto-migration: create all tables
@@ -208,6 +212,52 @@ using (var scope = app.Services.CreateScope())
                     ALTER TABLE Users ADD IsPhoneVerified BIT NOT NULL DEFAULT 1;
             ");
 
+            // Migration 003: Assets table
+            await conn.ExecuteAsync(@"
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('dbo.Assets') AND type = 'U')
+                BEGIN
+                    CREATE TABLE dbo.Assets (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        SiteKey NVARCHAR(50) NOT NULL DEFAULT 'usushi',
+                        FileName NVARCHAR(500) NOT NULL,
+                        ContentType NVARCHAR(100) NOT NULL,
+                        FileSize BIGINT NULL,
+                        StorageUrl NVARCHAR(1000) NOT NULL,
+                        StorageType NVARCHAR(50) NOT NULL DEFAULT 'local',
+                        AssetType NVARCHAR(50) NULL,
+                        Category NVARCHAR(100) NULL,
+                        UploadedBy INT NULL,
+                        IsPublic BIT NOT NULL DEFAULT 1,
+                        CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+                        IsDeleted BIT NOT NULL DEFAULT 0
+                    );
+                END
+            ");
+
+            // Migration 004: PhoneScans table
+            await conn.ExecuteAsync(@"
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('dbo.PhoneScans') AND type = 'U')
+                BEGIN
+                    CREATE TABLE dbo.PhoneScans (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        ImageAssetId INT NULL,
+                        ScannedData NVARCHAR(MAX) NULL,
+                        ScannedBy INT NULL,
+                        ScannedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+                        ReviewedAt DATETIME2 NULL,
+                        ReviewedBy INT NULL,
+                        Notes NVARCHAR(500) NULL,
+                        CONSTRAINT FK_PhoneScans_Assets FOREIGN KEY (ImageAssetId) REFERENCES Assets(Id)
+                    );
+                END
+            ");
+
+            // Migration 005: Add ReceiptAssetId to Meals
+            await conn.ExecuteAsync(@"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Meals') AND name = 'ReceiptAssetId')
+                    ALTER TABLE Meals ADD ReceiptAssetId INT NULL;
+            ");
+
             app.Logger.LogInformation("Database migration completed successfully");
         }
         catch (Exception ex)
@@ -228,8 +278,8 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Serve static files (for receipt images)
-app.UseStaticFiles();
+// NOTE: No UseStaticFiles() for uploads — all uploaded files served via /asset/{id} endpoint
+// (funtime-shared asset management pattern)
 
 app.MapControllers();
 

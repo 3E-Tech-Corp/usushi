@@ -257,7 +257,7 @@ public class TestSmsRequest
 public class PhoneScan
 {
     public int Id { get; set; }
-    public string ImagePath { get; set; } = string.Empty;
+    public int? ImageAssetId { get; set; }
     public string? ScannedData { get; set; }
     public int? ScannedBy { get; set; }
     public DateTime ScannedAt { get; set; }
@@ -269,6 +269,7 @@ public class PhoneScan
 public class PhoneScanDto
 {
     public int Id { get; set; }
+    public int? ImageAssetId { get; set; }
     public string ImageUrl { get; set; } = string.Empty;
     public string? ScannedData { get; set; }
     public int? ScannedBy { get; set; }

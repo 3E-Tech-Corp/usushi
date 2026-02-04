@@ -17,6 +17,7 @@ interface ScanPhonesResponse {
 
 interface PhoneScanRecord {
   id: number;
+  imageAssetId: number | null;
   imageUrl: string;
   scannedData: string | null;
   scannedBy: number | null;

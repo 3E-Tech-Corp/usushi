@@ -17,15 +17,17 @@ public class MealsController : ControllerBase
     private readonly ReceiptService _receiptService;
     private readonly SmsService _smsService;
     private readonly ILogger<MealsController> _logger;
-    private readonly IWebHostEnvironment _env;
+    private readonly IAssetService _assetService;
+    private readonly IFileStorageService _storageService;
 
-    public MealsController(IConfiguration config, ReceiptService receiptService, SmsService smsService, ILogger<MealsController> logger, IWebHostEnvironment env)
+    public MealsController(IConfiguration config, ReceiptService receiptService, SmsService smsService, ILogger<MealsController> logger, IAssetService assetService, IFileStorageService storageService)
     {
         _config = config;
         _receiptService = receiptService;
         _smsService = smsService;
         _logger = logger;
-        _env = env;
+        _assetService = assetService;
+        _storageService = storageService;
     }
 
     private SqlConnection CreateConnection() =>
@@ -66,36 +68,47 @@ public class MealsController : ControllerBase
 
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        // Save file — use AppContext.BaseDirectory which works reliably on IIS
-        var basePath = AppContext.BaseDirectory;
-        var uploadsPath = _config["Uploads:ReceiptsPath"];
-        if (string.IsNullOrEmpty(uploadsPath))
-            uploadsPath = Path.Combine(basePath, "wwwroot", "uploads", "receipts");
-        _logger.LogInformation("Uploads path: {Path}, BaseDir: {Base}", uploadsPath, basePath);
-        Directory.CreateDirectory(uploadsPath);
-
-        var fileName = $"{userId}_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}{extension}";
-        var filePath = Path.Combine(uploadsPath, fileName);
-
-        await using (var stream = new FileStream(filePath, FileMode.Create))
+        // Step 1: Create asset record to get ID
+        var contentType = file.ContentType?.ToLowerInvariant() ?? "image/jpeg";
+        var asset = new Asset
         {
-            await file.CopyToAsync(stream);
-        }
+            AssetType = "receipt",
+            FileName = file.FileName ?? $"receipt{extension}",
+            ContentType = contentType,
+            FileSize = file.Length,
+            StorageUrl = string.Empty,
+            StorageType = _storageService.StorageType,
+            SiteKey = "usushi",
+            UploadedBy = userId,
+            IsPublic = true
+        };
+        asset = await _assetService.CreateAsync(asset);
+
+        // Step 2: Save file to disk via storage service
+        using var uploadStream = file.OpenReadStream();
+        var storageUrl = await _storageService.UploadFileAsync(uploadStream, asset.FileName, asset.Id, asset.SiteKey);
+        await _assetService.UpdateStorageUrlAsync(asset.Id, storageUrl);
+
+        // Resolve physical path for OCR processing
+        var filePath = Path.Combine(
+            _config["Storage:LocalPath"] ?? Path.Combine(AppContext.BaseDirectory, "uploads"),
+            storageUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
 
         // Extract receipt data with OpenAI Vision
         var receiptData = await _receiptService.ExtractReceiptDataAsync(filePath);
 
-        // Store meal record
-        var relativePath = $"/uploads/receipts/{fileName}";
+        // Store meal record with asset reference
+        var relativePath = $"/api/asset/{asset.Id}";
         using var conn = CreateConnection();
         var mealId = await conn.QuerySingleAsync<int>(
-            @"INSERT INTO Meals (UserId, PhotoPath, ExtractedTotal, ExtractedDate, ExtractedRestaurant, Status, CreatedAt)
+            @"INSERT INTO Meals (UserId, PhotoPath, ReceiptAssetId, ExtractedTotal, ExtractedDate, ExtractedRestaurant, Status, CreatedAt)
               OUTPUT INSERTED.Id
-              VALUES (@UserId, @PhotoPath, @ExtractedTotal, @ExtractedDate, @ExtractedRestaurant, @Status, GETUTCDATE())",
+              VALUES (@UserId, @PhotoPath, @ReceiptAssetId, @ExtractedTotal, @ExtractedDate, @ExtractedRestaurant, @Status, GETUTCDATE())",
             new
             {
                 UserId = userId,
                 PhotoPath = relativePath,
+                ReceiptAssetId = asset.Id,
                 ExtractedTotal = receiptData.Total,
                 ExtractedDate = receiptData.Date,
                 ExtractedRestaurant = receiptData.Restaurant,

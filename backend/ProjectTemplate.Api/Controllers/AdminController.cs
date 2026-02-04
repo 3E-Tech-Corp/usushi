@@ -19,13 +19,17 @@ public class AdminController : ControllerBase
     private readonly SmsService _smsService;
     private readonly ILogger<AdminController> _logger;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IAssetService _assetService;
+    private readonly IFileStorageService _storageService;
 
-    public AdminController(IConfiguration config, SmsService smsService, ILogger<AdminController> logger, IHttpClientFactory httpClientFactory)
+    public AdminController(IConfiguration config, SmsService smsService, ILogger<AdminController> logger, IHttpClientFactory httpClientFactory, IAssetService assetService, IFileStorageService storageService)
     {
         _config = config;
         _smsService = smsService;
         _logger = logger;
         _httpClientFactory = httpClientFactory;
+        _assetService = assetService;
+        _storageService = storageService;
     }
 
     private SqlConnection CreateConnection() =>
@@ -348,43 +352,50 @@ Rules:
                 }
             }
 
-            // Save the image to disk and record in database
+            // Save image via Asset system and record in PhoneScans
             int? scanId = null;
             try
             {
                 var imageBytes = Convert.FromBase64String(base64Image);
                 var ext = mimeType switch
                 {
-                    "image/png" => "png",
-                    "image/gif" => "gif",
-                    "image/webp" => "webp",
-                    _ => "jpg"
+                    "image/png" => ".png",
+                    "image/gif" => ".gif",
+                    "image/webp" => ".webp",
+                    _ => ".jpg"
                 };
 
-                // Insert DB record first to get the ID
-                using var conn2 = CreateConnection();
                 var adminUserId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var uid) ? uid : (int?)null;
+
+                // Step 1: Create asset record to get ID
+                var asset = new Asset
+                {
+                    AssetType = "phone-scan",
+                    FileName = $"phone-scan{ext}",
+                    ContentType = mimeType,
+                    FileSize = imageBytes.Length,
+                    StorageUrl = string.Empty,
+                    StorageType = _storageService.StorageType,
+                    SiteKey = "usushi",
+                    UploadedBy = adminUserId,
+                    IsPublic = true
+                };
+                asset = await _assetService.CreateAsync(asset);
+
+                // Step 2: Save file to disk named by asset ID
+                using var memStream = new MemoryStream(imageBytes);
+                var storageUrl = await _storageService.UploadFileAsync(memStream, asset.FileName, asset.Id, asset.SiteKey);
+                await _assetService.UpdateStorageUrlAsync(asset.Id, storageUrl);
+
+                // Step 3: Insert PhoneScans record with asset FK
+                using var conn2 = CreateConnection();
                 var scannedDataJson = JsonSerializer.Serialize(scannedPhones);
 
                 scanId = await conn2.ExecuteScalarAsync<int>(
-                    @"INSERT INTO PhoneScans (ImagePath, ScannedData, ScannedBy)
-                      VALUES (@ImagePath, @ScannedData, @ScannedBy);
+                    @"INSERT INTO PhoneScans (ImageAssetId, ScannedData, ScannedBy)
+                      VALUES (@ImageAssetId, @ScannedData, @ScannedBy);
                       SELECT CAST(SCOPE_IDENTITY() AS INT);",
-                    new { ImagePath = "pending", ScannedData = scannedDataJson, ScannedBy = adminUserId });
-
-                // Save file: {BaseDirectory}/wwwroot/uploads/phone-scans/{YYYY-MM}/{scanId}.{ext}
-                var yearMonth = DateTime.UtcNow.ToString("yyyy-MM");
-                var uploadDir = Path.Combine(AppContext.BaseDirectory, "wwwroot", "uploads", "phone-scans", yearMonth);
-                Directory.CreateDirectory(uploadDir);
-                var fileName = $"{scanId}.{ext}";
-                var filePath = Path.Combine(uploadDir, fileName);
-                await System.IO.File.WriteAllBytesAsync(filePath, imageBytes);
-
-                // Update the image path in DB
-                var relativePath = $"uploads/phone-scans/{yearMonth}/{fileName}";
-                await conn2.ExecuteAsync(
-                    "UPDATE PhoneScans SET ImagePath = @ImagePath WHERE Id = @Id",
-                    new { ImagePath = relativePath, Id = scanId });
+                    new { ImageAssetId = asset.Id, ScannedData = scannedDataJson, ScannedBy = adminUserId });
             }
             catch (Exception saveEx)
             {
@@ -486,14 +497,15 @@ Rules:
         using var conn = CreateConnection();
 
         var scans = await conn.QueryAsync<PhoneScan>(
-            @"SELECT Id, ImagePath, ScannedData, ScannedBy, ScannedAt, ReviewedAt, ReviewedBy, Notes
+            @"SELECT Id, ImageAssetId, ScannedData, ScannedBy, ScannedAt, ReviewedAt, ReviewedBy, Notes
               FROM PhoneScans
               ORDER BY ScannedAt DESC");
 
         var dtos = scans.Select(s => new PhoneScanDto
         {
             Id = s.Id,
-            ImageUrl = $"/api/admin/phone-scans/{s.Id}/image",
+            ImageAssetId = s.ImageAssetId,
+            ImageUrl = s.ImageAssetId.HasValue ? $"/asset/{s.ImageAssetId}" : "",
             ScannedData = s.ScannedData,
             ScannedBy = s.ScannedBy,
             ScannedAt = s.ScannedAt,
@@ -528,37 +540,5 @@ Rules:
 
         _logger.LogInformation("Phone scan {Id} reviewed by admin {AdminId}", id, adminUserId);
         return Ok(new { message = "Scan marked as reviewed" });
-    }
-
-    /// <summary>
-    /// Serve a phone scan image
-    /// </summary>
-    [HttpGet("phone-scans/{id}/image")]
-    public async Task<IActionResult> GetPhoneScanImage(int id)
-    {
-        using var conn = CreateConnection();
-
-        var imagePath = await conn.QueryFirstOrDefaultAsync<string>(
-            "SELECT ImagePath FROM PhoneScans WHERE Id = @Id", new { Id = id });
-
-        if (string.IsNullOrEmpty(imagePath) || imagePath == "pending")
-            return NotFound(new { message = "Image not found" });
-
-        var fullPath = Path.Combine(AppContext.BaseDirectory, "wwwroot", imagePath);
-
-        if (!System.IO.File.Exists(fullPath))
-            return NotFound(new { message = "Image file not found on disk" });
-
-        var ext = Path.GetExtension(fullPath).ToLowerInvariant();
-        var contentType = ext switch
-        {
-            ".png" => "image/png",
-            ".gif" => "image/gif",
-            ".webp" => "image/webp",
-            _ => "image/jpeg"
-        };
-
-        var bytes = await System.IO.File.ReadAllBytesAsync(fullPath);
-        return File(bytes, contentType);
     }
 }
