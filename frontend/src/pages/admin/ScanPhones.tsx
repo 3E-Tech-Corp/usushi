@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Camera, Phone, CheckCircle, AlertCircle, Send, Upload, X, UserPlus, Loader2 } from 'lucide-react';
+import { Camera, Phone, CheckCircle, AlertCircle, Send, Upload, X, UserPlus, Loader2, ClipboardList, Eye, ChevronDown, ChevronUp } from 'lucide-react';
 import api from '../../services/api';
 
 interface ScannedPhone {
@@ -11,7 +11,19 @@ interface ScannedPhone {
 }
 
 interface ScanPhonesResponse {
+  scanId: number | null;
   phones: ScannedPhone[];
+}
+
+interface PhoneScanRecord {
+  id: number;
+  imageUrl: string;
+  scannedData: string | null;
+  scannedBy: number | null;
+  scannedAt: string;
+  reviewedAt: string | null;
+  reviewedBy: number | null;
+  notes: string | null;
 }
 
 interface ImportPhonesResponse {
@@ -84,6 +96,14 @@ export default function ScanPhones() {
   const [sendingSms, setSendingSms] = useState(false);
   const [smsSuccess, setSmsSuccess] = useState('');
 
+  // Scan history state
+  const [scanHistory, setScanHistory] = useState<PhoneScanRecord[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [expandedScanId, setExpandedScanId] = useState<number | null>(null);
+  const [reviewingId, setReviewingId] = useState<number | null>(null);
+  const [scanSaved, setScanSaved] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
   const loadUnverifiedUsers = () => {
     setLoadingUsers(true);
     api.get<UserWithStats[]>('/admin/users')
@@ -92,6 +112,14 @@ export default function ScanPhones() {
       })
       .catch(console.error)
       .finally(() => setLoadingUsers(false));
+  };
+
+  const loadScanHistory = () => {
+    setLoadingHistory(true);
+    api.get<PhoneScanRecord[]>('/admin/phone-scans')
+      .then(setScanHistory)
+      .catch(console.error)
+      .finally(() => setLoadingHistory(false));
   };
 
   useEffect(() => { loadUnverifiedUsers(); }, []);
@@ -122,6 +150,7 @@ export default function ScanPhones() {
     setScanning(true);
     setScanError('');
     setImportResult(null);
+    setScanSaved(false);
     try {
       // Resize image to reduce payload (Cloudflare blocks large request bodies)
       const resized = await resizeImage(preview!, 2048);
@@ -129,6 +158,9 @@ export default function ScanPhones() {
         imageData: resized
       });
       setScannedPhones(response.phones);
+      if (response.scanId) {
+        setScanSaved(true);
+      }
       // Auto-select all non-existing, non-uncertain phones
       const autoSelected = new Set<string>();
       response.phones.forEach(p => {
@@ -211,7 +243,22 @@ export default function ScanPhones() {
     setSelectedPhones(new Set());
     setScanError('');
     setImportResult(null);
+    setScanSaved(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleReviewScan = async (scanId: number) => {
+    setReviewingId(scanId);
+    try {
+      await api.post<{ message: string }>(`/admin/phone-scans/${scanId}/review`, { notes: null });
+      setScanHistory(prev => prev.map(s =>
+        s.id === scanId ? { ...s, reviewedAt: new Date().toISOString() } : s
+      ));
+    } catch (err) {
+      setScanError(err instanceof Error ? err.message : 'Failed to review scan');
+    } finally {
+      setReviewingId(null);
+    }
   };
 
   const importableCount = scannedPhones.filter(p => !p.alreadyExists).length;
@@ -305,6 +352,14 @@ export default function ScanPhones() {
           onChange={handleFileSelect}
           className="hidden"
         />
+
+        {/* Saved for review notice */}
+        {scanSaved && (
+          <div className="mt-4 p-3 bg-blue-900/30 border border-blue-700/50 rounded-lg text-blue-300 text-sm flex items-center gap-2">
+            <CheckCircle size={16} className="text-blue-400 flex-shrink-0" />
+            Image saved for review. You can view it later in Scan History.
+          </div>
+        )}
 
         {/* Scanned Results */}
         {scannedPhones.length > 0 && (
@@ -405,6 +460,139 @@ export default function ScanPhones() {
                 </>
               )}
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* Scan History Section */}
+      <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+        <button
+          onClick={() => {
+            setShowHistory(!showHistory);
+            if (!showHistory && scanHistory.length === 0) loadScanHistory();
+          }}
+          className="w-full flex items-center justify-between text-left"
+        >
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <ClipboardList size={20} className="text-sushi-400" />
+            📋 Scan History
+          </h2>
+          {showHistory ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
+        </button>
+
+        {showHistory && (
+          <div className="mt-4 space-y-3">
+            {loadingHistory ? (
+              <div className="text-center py-8 text-gray-400">
+                <Loader2 size={20} className="animate-spin mx-auto mb-2" />
+                Loading scan history...
+              </div>
+            ) : scanHistory.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">No phone scans yet</div>
+            ) : (
+              scanHistory.map(scan => {
+                const isExpanded = expandedScanId === scan.id;
+                const phones: ScannedPhone[] = scan.scannedData ? JSON.parse(scan.scannedData) : [];
+                return (
+                  <div key={scan.id} className="border border-gray-700 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setExpandedScanId(isExpanded ? null : scan.id)}
+                      className="w-full flex items-center gap-3 p-3 hover:bg-gray-700/50 transition text-left"
+                    >
+                      <img
+                        src={`/api${scan.imageUrl}`}
+                        alt={`Scan #${scan.id}`}
+                        className="w-12 h-12 object-cover rounded border border-gray-600 flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white text-sm font-medium">Scan #{scan.id}</span>
+                          <span className="text-gray-500 text-xs">
+                            {new Date(scan.scannedAt).toLocaleDateString('en-US', {
+                              month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-gray-400 text-xs">{phones.length} numbers</span>
+                          {scan.reviewedAt ? (
+                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-900/50 text-green-400">
+                              <CheckCircle size={10} />
+                              Reviewed
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-yellow-900/50 text-yellow-400">
+                              <AlertCircle size={10} />
+                              Pending review
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {isExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                    </button>
+
+                    {isExpanded && (
+                      <div className="border-t border-gray-700 p-4 space-y-4">
+                        <img
+                          src={`/api${scan.imageUrl}`}
+                          alt={`Scan #${scan.id} full`}
+                          className="w-full max-h-96 object-contain rounded-lg bg-gray-900"
+                        />
+
+                        {phones.length > 0 && (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b border-gray-700">
+                                  <th className="text-left px-3 py-2 text-gray-400">Phone</th>
+                                  <th className="text-left px-3 py-2 text-gray-400">Name</th>
+                                  <th className="text-left px-3 py-2 text-gray-400">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-700/50">
+                                {phones.map((p, idx) => (
+                                  <tr key={idx}>
+                                    <td className="px-3 py-2 text-white font-mono">{formatPhone(p.phone)}</td>
+                                    <td className="px-3 py-2 text-gray-300">{p.name || '—'}</td>
+                                    <td className="px-3 py-2">
+                                      {p.uncertain && (
+                                        <span className="text-yellow-400 text-xs">⚠ Uncertain</span>
+                                      )}
+                                      {p.alreadyExists && (
+                                        <span className="text-blue-400 text-xs">✓ Exists</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+
+                        {scan.notes && (
+                          <p className="text-gray-400 text-sm">Notes: {scan.notes}</p>
+                        )}
+
+                        {!scan.reviewedAt && (
+                          <button
+                            onClick={() => handleReviewScan(scan.id)}
+                            disabled={reviewingId === scan.id}
+                            className="inline-flex items-center gap-2 bg-green-700 hover:bg-green-600 disabled:bg-gray-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+                          >
+                            {reviewingId === scan.id ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Eye size={14} />
+                            )}
+                            Mark as Reviewed
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
         )}
       </div>

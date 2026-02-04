@@ -231,6 +231,7 @@ public class ScannedPhone
 
 public class ScanPhonesResponse
 {
+    public int? ScanId { get; set; }
     public List<ScannedPhone> Phones { get; set; } = new();
 }
 
@@ -249,4 +250,35 @@ public class ImportPhonesResponse
 public class TestSmsRequest
 {
     public string Message { get; set; } = string.Empty;
+}
+
+// ─── Phone Scan Review DTOs ───
+
+public class PhoneScan
+{
+    public int Id { get; set; }
+    public string ImagePath { get; set; } = string.Empty;
+    public string? ScannedData { get; set; }
+    public int? ScannedBy { get; set; }
+    public DateTime ScannedAt { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+    public int? ReviewedBy { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class PhoneScanDto
+{
+    public int Id { get; set; }
+    public string ImageUrl { get; set; } = string.Empty;
+    public string? ScannedData { get; set; }
+    public int? ScannedBy { get; set; }
+    public DateTime ScannedAt { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+    public int? ReviewedBy { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class ReviewPhoneScanRequest
+{
+    public string? Notes { get; set; }
 }

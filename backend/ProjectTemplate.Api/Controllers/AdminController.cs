@@ -348,8 +348,51 @@ Rules:
                 }
             }
 
-            _logger.LogInformation("Phone scan completed: {Count} numbers found", scannedPhones.Count);
-            return Ok(new ScanPhonesResponse { Phones = scannedPhones });
+            // Save the image to disk and record in database
+            int? scanId = null;
+            try
+            {
+                var imageBytes = Convert.FromBase64String(base64Image);
+                var ext = mimeType switch
+                {
+                    "image/png" => "png",
+                    "image/gif" => "gif",
+                    "image/webp" => "webp",
+                    _ => "jpg"
+                };
+
+                // Insert DB record first to get the ID
+                using var conn2 = CreateConnection();
+                var adminUserId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var uid) ? uid : (int?)null;
+                var scannedDataJson = JsonSerializer.Serialize(scannedPhones);
+
+                scanId = await conn2.ExecuteScalarAsync<int>(
+                    @"INSERT INTO PhoneScans (ImagePath, ScannedData, ScannedBy)
+                      VALUES (@ImagePath, @ScannedData, @ScannedBy);
+                      SELECT CAST(SCOPE_IDENTITY() AS INT);",
+                    new { ImagePath = "pending", ScannedData = scannedDataJson, ScannedBy = adminUserId });
+
+                // Save file: {BaseDirectory}/wwwroot/uploads/phone-scans/{YYYY-MM}/{scanId}.{ext}
+                var yearMonth = DateTime.UtcNow.ToString("yyyy-MM");
+                var uploadDir = Path.Combine(AppContext.BaseDirectory, "wwwroot", "uploads", "phone-scans", yearMonth);
+                Directory.CreateDirectory(uploadDir);
+                var fileName = $"{scanId}.{ext}";
+                var filePath = Path.Combine(uploadDir, fileName);
+                await System.IO.File.WriteAllBytesAsync(filePath, imageBytes);
+
+                // Update the image path in DB
+                var relativePath = $"uploads/phone-scans/{yearMonth}/{fileName}";
+                await conn2.ExecuteAsync(
+                    "UPDATE PhoneScans SET ImagePath = @ImagePath WHERE Id = @Id",
+                    new { ImagePath = relativePath, Id = scanId });
+            }
+            catch (Exception saveEx)
+            {
+                _logger.LogWarning(saveEx, "Failed to save phone scan image (scan results still returned)");
+            }
+
+            _logger.LogInformation("Phone scan completed: {Count} numbers found, ScanId={ScanId}", scannedPhones.Count, scanId);
+            return Ok(new ScanPhonesResponse { ScanId = scanId, Phones = scannedPhones });
         }
         catch (Exception ex)
         {
@@ -432,5 +475,90 @@ Rules:
         }
 
         return StatusCode(502, new { message = "Failed to send SMS" });
+    }
+
+    /// <summary>
+    /// Get all phone scan history
+    /// </summary>
+    [HttpGet("phone-scans")]
+    public async Task<IActionResult> GetPhoneScans()
+    {
+        using var conn = CreateConnection();
+
+        var scans = await conn.QueryAsync<PhoneScan>(
+            @"SELECT Id, ImagePath, ScannedData, ScannedBy, ScannedAt, ReviewedAt, ReviewedBy, Notes
+              FROM PhoneScans
+              ORDER BY ScannedAt DESC");
+
+        var dtos = scans.Select(s => new PhoneScanDto
+        {
+            Id = s.Id,
+            ImageUrl = $"/api/admin/phone-scans/{s.Id}/image",
+            ScannedData = s.ScannedData,
+            ScannedBy = s.ScannedBy,
+            ScannedAt = s.ScannedAt,
+            ReviewedAt = s.ReviewedAt,
+            ReviewedBy = s.ReviewedBy,
+            Notes = s.Notes
+        }).ToList();
+
+        return Ok(dtos);
+    }
+
+    /// <summary>
+    /// Review (mark as reviewed) a phone scan
+    /// </summary>
+    [HttpPost("phone-scans/{id}/review")]
+    public async Task<IActionResult> ReviewPhoneScan(int id, [FromBody] ReviewPhoneScanRequest request)
+    {
+        using var conn = CreateConnection();
+
+        var scan = await conn.QueryFirstOrDefaultAsync<PhoneScan>(
+            "SELECT Id FROM PhoneScans WHERE Id = @Id", new { Id = id });
+
+        if (scan == null)
+            return NotFound(new { message = "Phone scan not found" });
+
+        var adminUserId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var uid) ? uid : (int?)null;
+
+        await conn.ExecuteAsync(
+            @"UPDATE PhoneScans SET ReviewedAt = SYSUTCDATETIME(), ReviewedBy = @ReviewedBy, Notes = @Notes
+              WHERE Id = @Id",
+            new { ReviewedBy = adminUserId, Notes = request.Notes, Id = id });
+
+        _logger.LogInformation("Phone scan {Id} reviewed by admin {AdminId}", id, adminUserId);
+        return Ok(new { message = "Scan marked as reviewed" });
+    }
+
+    /// <summary>
+    /// Serve a phone scan image
+    /// </summary>
+    [HttpGet("phone-scans/{id}/image")]
+    public async Task<IActionResult> GetPhoneScanImage(int id)
+    {
+        using var conn = CreateConnection();
+
+        var imagePath = await conn.QueryFirstOrDefaultAsync<string>(
+            "SELECT ImagePath FROM PhoneScans WHERE Id = @Id", new { Id = id });
+
+        if (string.IsNullOrEmpty(imagePath) || imagePath == "pending")
+            return NotFound(new { message = "Image not found" });
+
+        var fullPath = Path.Combine(AppContext.BaseDirectory, "wwwroot", imagePath);
+
+        if (!System.IO.File.Exists(fullPath))
+            return NotFound(new { message = "Image file not found on disk" });
+
+        var ext = Path.GetExtension(fullPath).ToLowerInvariant();
+        var contentType = ext switch
+        {
+            ".png" => "image/png",
+            ".gif" => "image/gif",
+            ".webp" => "image/webp",
+            _ => "image/jpeg"
+        };
+
+        var bytes = await System.IO.File.ReadAllBytesAsync(fullPath);
+        return File(bytes, contentType);
     }
 }
